@@ -190,6 +190,13 @@ These CLI tools can be provided with the following flags:
 * `--modelName`: Optional name of the model to use (defaults to gemini-2.5-pro-preview-06-05).
 * `--keyFilename`: Optional path to the service account key file for authentication.
 
+Example:
+
+```bash
+# Running the categorization tool
+npx ts-node ./library/runner-cli/categorization_runner.ts --vertexProject <project-name> --outputFile <output-file-name> --inputFile <input-file-name> --additionalContext <additional-context> --keyFilename <key-file-name> --modelName <model-name>
+```
+
 ## **Generating a Report \- Get a webpage presentation of the report**
 
 ![Example of webpage presenting the generated report](./assets/report-page.png)
