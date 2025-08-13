@@ -172,7 +172,7 @@ const summary = mySensemaker.summarize(
 console.log(summary.getText("MARKDOWN"));
 ```
 
-CLI Usage  
+## CLI Usage
 There is also a simple CLI set up for testing. There are three tools:
 
 * [./library/runner-cli/runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/runner.ts): takes in a CSV representing a conversation and outputs an HTML file containing the summary. The summary is best viewed as an HTML file so that the included citations can be hovered over to see the original comment and votes.  
@@ -180,6 +180,15 @@ There is also a simple CLI set up for testing. There are three tools:
 * [./library/runner-cli/advanced\_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/advanced_runner.ts): takes in a CSV representing a conversation and outputs three files for an advanced user more interested in the statistics. The first is a JSON of topics, their sizes, and their subtopics. The second is a JSON with all of the comments and their alignment scores and values. Third is the summary object as a JSON which can be used for additional processing.
 
 These tools process CSV input files.  These must contain the columns `comment_text` and `comment-id`.  For deliberations without group information, vote counts should be set in columns titled `agrees`, `disagrees` and `passes`.  If you do not have vote information, these can be set to 0. For deliberations with group breakdowns, you can set the columns `{group_name}-agree-count`, `{group_name}-disagree-count`, `{group_name}-pass-count`.
+
+These CLI tools can be provided with the following flags:
+
+* `--vertexProject`: The Vertex Project name.
+* `--inputFile`: The input file name.
+* `--outputFile`: The output file name.
+* `--topics`: Optional list of top-level topics.
+* `--modelName`: Optional name of the model to use (defaults to gemini-2.5-pro-preview-06-05).
+* `--keyFilename`: Optional path to the service account key file for authentication.
 
 ## **Generating a Report \- Get a webpage presentation of the report**
 
