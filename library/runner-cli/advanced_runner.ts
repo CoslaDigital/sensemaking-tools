@@ -158,7 +158,7 @@ async function main(): Promise<void> {
       "A short description of the conversation to add context."
     )
     .option("-v, --vertexProject <project>", "The Vertex Project name.")
-    .option("-k, --keyFilename <file>", "Path to the service account key file for authentication."),
+    .option("-k, --keyFilename <file>", "Path to the service account key file for authentication.")
     .option("-m, --modelName <model>", "The name of the model to use (defaults to gemini-2.5-pro-preview-06-05).");
   program.parse(process.argv);
   const options = program.opts();
