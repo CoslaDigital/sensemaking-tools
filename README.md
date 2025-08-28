@@ -130,6 +130,11 @@ Then to log in locally run:
 `gcloud config set project <your project name here>`  
 `gcloud auth application-default login`
 
+**Pro Tip**: After setting up authentication, run the health check tool first to verify your setup is working correctly:
+```bash
+npx ts-node ./library/runner-cli/health_check_runner.ts --vertexProject <your-project-id> --outputFile health-check
+```
+
 ## **Example Usage \- Javascript**
 
 Summarize Seattle’s $15 Minimum Wage Conversation.
@@ -173,8 +178,9 @@ console.log(summary.getText("MARKDOWN"));
 ```
 
 ## CLI Usage
-There is also a simple CLI set up for testing. There are three tools:
+There is also a simple CLI set up for testing. There are four tools:
 
+* [./library/runner-cli/health_check_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/health_check_runner.ts): comprehensive health check that verifies Google Cloud authentication, Vertex AI connectivity, and model functionality, outputting test results and generated text to files. Run this first to ensure your setup is working before using other tools.
 * [./library/runner-cli/runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/runner.ts): takes in a CSV representing a conversation and outputs an HTML file containing the summary. The summary is best viewed as an HTML file so that the included citations can be hovered over to see the original comment and votes.  
 * [./library/runner-cli/categorization\_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/categorization_runner.ts): takes in a CSV representing a conversation and outputs another CSV with the comments categorized into topics and subtopics.  
 * [./library/runner-cli/advanced\_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/advanced_runner.ts): takes in a CSV representing a conversation and outputs three files for an advanced user more interested in the statistics. The first is a JSON of topics, their sizes, and their subtopics. The second is a JSON with all of the comments and their alignment scores and values. Third is the summary object as a JSON which can be used for additional processing.
@@ -190,9 +196,12 @@ These CLI tools can be provided with the following flags:
 * `--modelName`: Optional name of the model to use (defaults to gemini-2.5-pro-preview-06-05).
 * `--keyFilename`: Optional path to the service account key file for authentication.
 
-Example:
+Examples:
 
 ```bash
+# Running the health check tool (run this first to verify your setup)
+npx ts-node ./library/runner-cli/health_check_runner.ts --vertexProject <project-name> --outputFile <output-file-name> --keyFilename <key-file-name> --modelName <model-name>
+
 # Running the categorization tool
 npx ts-node ./library/runner-cli/categorization_runner.ts --vertexProject <project-name> --outputFile <output-file-name> --inputFile <input-file-name> --additionalContext <additional-context> --keyFilename <key-file-name> --modelName <model-name>
 ```
