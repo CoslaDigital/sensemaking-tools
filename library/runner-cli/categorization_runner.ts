@@ -163,9 +163,8 @@ async function writeCsv(csvRows: CommentCsvRow[], outputFile: string) {
     path: outputFile,
     header: header,
   });
-  csvWriter
-    .writeRecords(csvRows)
-    .then(() => console.log(`CSV file written successfully to ${outputFile}.`));
+  await csvWriter.writeRecords(csvRows)
+  console.log(`CSV file written successfully to ${outputFile}.`);
 }
 
 function getTopics(commaSeparatedTopics: string): Topic[] {
