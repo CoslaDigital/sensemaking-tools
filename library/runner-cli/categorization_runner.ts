@@ -96,6 +96,7 @@ async function main(): Promise<void> {
   const csvRowsWithTopics = setTopics(csvRows, categorizedComments);
 
   await writeCsv(csvRowsWithTopics, options.outputFile);
+  process.exit(0);
 }
 
 async function readCsv(inputFilePath: string): Promise<CommentCsvRow[]> {
@@ -163,8 +164,14 @@ async function writeCsv(csvRows: CommentCsvRow[], outputFile: string) {
     path: outputFile,
     header: header,
   });
-  await csvWriter.writeRecords(csvRows)
-  console.log(`CSV file written successfully to ${outputFile}.`);
+
+  try {
+    await csvWriter.writeRecords(csvRows)
+    console.log(`CSV file written successfully to ${outputFile}.`);
+  } catch (error) {
+    console.error("Error writing CSV file:", error);
+    process.exit(1);
+  }
 }
 
 function getTopics(commaSeparatedTopics: string): Topic[] {
