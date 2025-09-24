@@ -172,28 +172,36 @@ async function main(): Promise<void> {
     );
   }
 
-  // Modify the SummaryStats output to drop comment info and add RelativeContext.
-  const minimalTopicStats = createMinimalStats(stats.getStatsByTopic());
-  writeFileSync(
-    options.outputBasename + "-topic-stats.json",
-    JSON.stringify(minimalTopicStats, null, 2)
-  );
+  try {
+    // Modify the SummaryStats output to drop comment info and add RelativeContext.
+    const minimalTopicStats = createMinimalStats(stats.getStatsByTopic());
+    writeFileSync(
+      options.outputBasename + "-topic-stats.json",
+      JSON.stringify(minimalTopicStats, null, 2)
+    );
 
-  const commentsWithScores = getCommentsWithScores(comments, stats);
-  writeFileSync(
-    options.outputBasename + "-comments-with-scores.json",
-    JSON.stringify(commentsWithScores, null, 2)
-  );
+    const commentsWithScores = getCommentsWithScores(comments, stats);
+    writeFileSync(
+      options.outputBasename + "-comments-with-scores.json",
+      JSON.stringify(commentsWithScores, null, 2)
+    );
 
-  const summary = await getSummary(
-    options.vertexProject,
-    comments,
-    undefined,
-    options.additionalContext,
-    options.keyFilename,
-    options.modelName
-  );
-  writeFileSync(options.outputBasename + "-summary.json", JSON.stringify(summary, null, 2));
+    const summary = await getSummary(
+      options.vertexProject,
+      comments,
+      undefined,
+      options.additionalContext,
+      options.keyFilename,
+      options.modelName
+    );
+    writeFileSync(options.outputBasename + "-summary.json", JSON.stringify(summary, null, 2));
+
+    console.log('Advanced runner completed successfully');
+    process.exit(0);
+  } catch (error) {
+    console.error("Error outputting files:", error);
+    process.exit(1);
+  }
 }
 
 main();
