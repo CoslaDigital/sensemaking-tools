@@ -4,18 +4,27 @@ import { TSchema, type Static } from "@sinclair/typebox";
 export class OllamaModel extends Model {
   private baseUrl: string;
   private modelName: string;
+  public readonly categorizationBatchSize: number;
 
-  constructor(baseUrl: string = "http://localhost:11434", modelName: string = "llama3:latest") {
+  constructor(
+    baseUrl: string = "http://localhost:11434",
+    modelName: string = "gemma3:latest",
+    categorizationBatchSize: number = 5 // Default lowered from 100 to avoid context size issues
+  ) {
     super();
     this.baseUrl = baseUrl;
     this.modelName = modelName;
+    this.categorizationBatchSize = categorizationBatchSize;
   }
 
   async generateText(prompt: string): Promise<string> {
     const bodyString = JSON.stringify({
       model: this.modelName,
       prompt: prompt,
-      stream: false
+      stream: false,
+      options: {
+        num_ctx: 8192 // config for context size, see: https://github.com/ollama/ollama/blob/main/docs/faq.md
+      }
     });
 
     const response = await fetch(`${this.baseUrl}/api/generate`, {
