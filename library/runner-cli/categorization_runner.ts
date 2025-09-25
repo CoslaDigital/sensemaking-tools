@@ -26,6 +26,7 @@
 //    --inputFile ~/input.csv \
 
 import { VertexModel } from "../src/models/vertex_model";
+import { OllamaModel } from "../src/models/ollama_model";
 import { Sensemaker } from "../src/sensemaker";
 import { Comment, Topic } from "../src/types";
 import { Command } from "commander";
@@ -83,6 +84,7 @@ async function main(): Promise<void> {
   // Learn topics and categorize comments.
   const sensemaker = new Sensemaker({
     defaultModel: new VertexModel(options.vertexProject, "global", options.modelName, options.keyFilename),
+    //defaultModel: new OllamaModel(undefined, options.modelName),
   });
   const topics = options.topics ? getTopics(options.topics) : undefined;
   const categorizedComments = await sensemaker.categorizeComments(
