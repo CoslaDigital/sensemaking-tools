@@ -1,12 +1,29 @@
 const esbuild = require("esbuild");
 const jsdom = require("jsdom");
 const fs = require("fs");
+const path = require("path");
 
 const { JSDOM } = jsdom;
 const srcDir = "dist/web-ui/browser";
-const destDir = "dist/bundled";
+const defaultDestDir = "dist/bundled";
 
-fs.mkdirSync(destDir, { recursive: true });
+// Parse CLI args for output file path (supports -o value, --outputFile value, and --outputFile=value)
+const argv = process.argv.slice(2);
+function getArgValue(names) {
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    for (const name of names) {
+      if (a === name && argv[i + 1]) return argv[i + 1];
+      if (a.startsWith(name + "=")) return a.split("=", 2)[1];
+    }
+  }
+  return undefined;
+}
+
+const outputFilePath = getArgValue(["-o", "--outputFile"]) || `${defaultDestDir}/report.html`;
+const outputDir = path.dirname(outputFilePath);
+
+fs.mkdirSync(outputDir, { recursive: true });
 
 const indexFilePath = srcDir + "/index.csr.html"; // this is the root html file from the build
 const htmlSource = fs.readFileSync(indexFilePath);
@@ -64,7 +81,7 @@ esbuild
     bundle: true,
     minify: true,
     sourcemap: false,
-    outfile: `${destDir}/bundled.js`, // file won't be created, but property is still required when writing to memory
+    outfile: path.join(outputDir, "bundled.js"), // file won't be created, but property is still required when writing to memory
     format: "esm",
     write: false, // places JS in memory instead of writing to file
   })
@@ -76,9 +93,8 @@ esbuild
       dom.window.document.body.appendChild(script);
 
       // do not rename file to "index.html"; causes a break
-      const reportFilePath = `${destDir}/report.html`;
-      fs.writeFileSync(reportFilePath, dom.serialize());
-      console.log(`Report HTML file created at ${__dirname + "/" + reportFilePath}`);
+      fs.writeFileSync(outputFilePath, dom.serialize());
+      console.log(`Report HTML file created at ${path.resolve(outputFilePath)}`);
     },
     (error) => console.error(error),
   );
