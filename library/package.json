@@ -1,7 +1,10 @@
 {
-  "name": "sensemaking-tools",
-  "description": "",
-  "main": "index.js",
+  "name": "@cosla/sensemaking-tools",
+  "version": "1.0.0",
+  "description": "Tools for analyzing large-scale public input using Google's Gemini models. Provides topic identification, statement categorization, and summarization capabilities. Fork of Jigsaw's sensemaking-tools (https://github.com/Jigsaw-Code/sensemaking-tools).",
+  "homepage": "https://github.com/CoslaDigital/sensemaking-tools#readme",
+  "main": "src/sensemaker.ts",
+  "types": "src/sensemaker.ts",
   "scripts": {
     "test": "npm run test:ts",
     "test:ts": "NODE_NO_WARNINGS=1 TFJS_NODE_GPU=false jest",
@@ -11,15 +14,38 @@
     "test-watch": "TFJS_NODE_GPU=false nodemon --watch src --watch runner-cli --ext 'ts,json' -x 'npm run test-silent --onlyChanged'",
     "prepare": "husky && husky install",
     "lint": "eslint . --fix --max-warnings=0",
-    "format": "prettier . --write"
+    "format": "prettier . --write",
+    "prepublishOnly": "echo 'Publishing @cosla/sensemaking-tools'"
   },
   "repository": {
     "type": "git",
-    "url": "sso://participation-project-internal/participation-project"
+    "url": "https://github.com/CoslaDigital/sensemaking-tools.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "sensemaking",
+    "gemini",
+    "llm",
+    "civic-tech",
+    "public-input",
+    "topic-identification",
+    "categorization",
+    "summarization",
+    "vertex-ai",
+    "google-cloud"
+  ],
+  "author": "CoslaDigital",
   "license": "ISC",
+  "files": [
+    "src/**/*",
+    "runner-cli/**/*",
+    "package.json",
+    "tsconfig.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/papaparse": "^5.3.15",
