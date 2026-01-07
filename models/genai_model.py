@@ -26,6 +26,7 @@ from google import genai
 from google.api_core import exceptions as google_api_core_exceptions
 from google.genai import errors as google_genai_errors
 from google.protobuf import duration_pb2, json_format
+from google.api_core import exceptions as google_exceptions
 import pandas as pd
 
 
@@ -48,19 +49,21 @@ class Job(TypedDict, total=False):
   response_mime_type: Optional[str]
   response_schema: Optional[Dict[str, Any]]
   retry_attempts: int
-  stats: Optional[Dict[str, Any]]
+  stats: Dict[str, Any]
   system_prompt: Optional[str]
   topic: Optional[str]
+  thinking_budget: Optional[int]
+  temperature: Optional[float]
 
 
 # The maximum number of times an LLM call should be retried.
-MAX_LLM_RETRIES = 6
+MAX_LLM_RETRIES = 4
 # How long in seconds to wait between LLM calls. This is needed due to per
 # minute limits Vertex AI imposes.
-RETRY_DELAY_SEC = 60
+RETRY_DELAY_SEC = 1
 # How long in seconds to wait before first LLM calls.
-INITIAL_RETRY_DELAY = 60
-# Maximum number of concurrent API calls. By default Genai limits to 10.
+INITIAL_RETRY_DELAY = 0.5
+# Maximum number of concurrent API calls.
 MAX_CONCURRENT_CALLS = 100
 
 COMPLETED_BATCH_JOB_STATES = frozenset({
@@ -139,10 +142,22 @@ class GenaiModel:
     )
     # Event to signal a global pause for all workers, e.g., for quota limits.
     # It's set by default, meaning workers can proceed.
-    self._quota_pause_event = asyncio.Event()
-    self._quota_pause_event.set()
+    self._quota_available_event = asyncio.Event()
+    self._quota_available_event.set()
     # Lock to ensure only one worker handles a quota error at a time.
-    self._quota_pause_lock = asyncio.Lock()
+    self._quota_availability_lock = asyncio.Lock()
+
+    # --- Service Availability Backoff ---
+    # Event to signal a global pause for all workers for service availability.
+    # It's set by default, meaning workers can proceed.
+    self._system_available_event = asyncio.Event()
+    self._system_available_event.set()
+    # Lock to ensure only one worker handles an availability error at a time.
+    self._system_availability_lock = asyncio.Lock()
+    # Constants for the exponential backoff delay
+    self._initial_backoff_delay = 2
+    self._max_backoff_delay = 64
+    self._backoff_delay = self._initial_backoff_delay
 
   def _parse_duration(self, duration_str: str) -> int:
     """Parses a duration string (e.g., '18s') into seconds."""
@@ -155,7 +170,16 @@ class GenaiModel:
     logging.info(f"   Global pause for {delay} seconds...")
     await asyncio.sleep(delay)
     logging.info("   Resuming all workers.")
-    self._quota_pause_event.set()
+    self._quota_available_event.set()
+
+  async def _handle_availability_pause(self, delay: int):
+    """
+    Pauses all workers for the current backoff duration and then resumes them.
+    """
+    logging.info(f"   Global availability pause for {delay} seconds...")
+    await asyncio.sleep(delay)
+    logging.info("   Resuming all workers after availability pause.")
+    self._system_available_event.set()
 
   async def _api_worker_with_retry(
       self,
@@ -187,14 +211,16 @@ class GenaiModel:
       prompt = job.get("prompt")
       opinion = job.get("opinion")
       allocations = job.get("allocations")
-      stats = job.get("stats")
-      combined_tokens = stats.get("combined_tokens") if stats else None
+      stats = job["stats"]
+      combined_tokens = stats.get("combined_tokens")
       retry_attempts = job.get("retry_attempts")
       initial_retry_delay = job.get("initial_retry_delay")
       delay_between_calls_seconds = job.get("delay_between_calls_seconds")
       system_prompt = job.get("system_prompt")
       response_mime_type = job.get("response_mime_type")
       response_schema = job.get("response_schema")
+      thinking_budget = job.get("thinking_budget")
+      temperature = job.get("temperature", 0.0)
 
       # Prepare logging prefix
       log_prefix = f"[Worker-{worker_id}]"
@@ -207,6 +233,11 @@ class GenaiModel:
         log_prefix += f" Processing topic '{topic}'"
       else:
         log_prefix += f" Processing job"
+
+      # Initialize failure tracking stats
+      stats["non_quota_failures"] = 0
+      stats["is_complete_failure"] = False
+
       # This list tracks failures for this job, to be included in the final
       # results for debugging. It is not part of the retry logic itself.
       failed_tries = []
@@ -214,8 +245,10 @@ class GenaiModel:
       # stopped, at which point the loop will `break`.
       attempt = 0
       while attempt < retry_attempts:
-        # Wait here if a global pause is in effect.
-        await self._quota_pause_event.wait()
+        # Wait here if a global pause is in effect for quota.
+        await self._quota_available_event.wait()
+        # Wait here if a global pause is in effect for availability.
+        await self._system_available_event.wait()
 
         resp = None  # Initialize resp for this attempt
         if stop_event.is_set():
@@ -234,6 +267,8 @@ class GenaiModel:
               system_prompt=system_prompt,
               response_mime_type=response_mime_type,
               response_schema=response_schema,
+              thinking_budget=thinking_budget,
+              temperature=temperature,
           )
 
           if resp.get("error"):
@@ -244,7 +279,8 @@ class GenaiModel:
             raise GenaiModelError(error)
 
           try:
-            result = response_parser(resp["text"], job)
+            job["current_attempt"] = attempt
+            result = response_parser(resp, job)
           except Exception as e:
             raise Exception(f"Response parsing failed: {e}")
 
@@ -266,8 +302,13 @@ class GenaiModel:
           result_data = {**job, **result_data}
           results_list.append(result_data)
 
-          if stats is not None:
-            stats_list.append(stats)
+          stats["total_token_used"] = resp["total_token_count"]
+          stats["prompt_token_count"] = resp["prompt_token_count"]
+          stats["candidates_token_count"] = resp["candidates_token_count"]
+          stats_list.append(stats)
+
+          # On success, reset the availability backoff delay
+          self._backoff_delay = self._initial_backoff_delay
 
           logging.info(f"✅ {log_prefix} Successfully processed.")
 
@@ -277,47 +318,64 @@ class GenaiModel:
           # Break the retry loop on success
           break
 
+        # Universal Error Handling
         except Exception as e:
-          # --- Universal Error Handling ---
 
-          # Check if this is a Resource Exhausted error
-          is_quota_error = (
+          # --- Quota Error Handling ---
+          if (
               isinstance(e, google_genai_errors.ClientError)
+              and hasattr(e, "response")
+              and e.response is not None
               and e.response.status == 429
-          )
-
-          if is_quota_error:
-            async with self._quota_pause_lock:
-              if self._quota_pause_event.is_set():
+          ):
+            async with self._quota_availability_lock:
+              if self._quota_available_event.is_set():
                 logging.warning(
                     f"{log_prefix} Quota limit hit. Initiating global pause."
                 )
-                self._quota_pause_event.clear()
+                self._quota_available_event.clear()
                 logging.info(
                     f"{log_prefix} I am the leader. Pausing all workers."
                 )
 
-                delay = 60  # Default delay
-                try:
-                  # Extract the dictionary from the error message
-                  error_details = await e.response.json()
-                  # Find the retryDelay in the details
-                  for detail in error_details.get("error", {}).get(
-                      "details", []
+                # Extract the dictionary from the error message
+                error_details = await e.response.json()
+                # Find the retryDelay in the details
+                for detail in error_details.get("error", {}).get("details", []):
+                  if (
+                      detail.get("@type")
+                      == "type.googleapis.com/google.rpc.RetryInfo"
                   ):
-                    if (
-                        detail.get("@type")
-                        == "type.googleapis.com/google.rpc.RetryInfo"
-                    ):
-                      retry_delay_str = detail.get("retryDelay", "60s")
-                      delay = self._parse_duration(retry_delay_str) + 1
-                      break
-                except (ValueError, AttributeError, TypeError, IndexError):
-                  pass
+                    retry_delay_str = detail.get("retryDelay", "60s")
+                    delay = self._parse_duration(retry_delay_str) + 1
+                    break
 
                 asyncio.create_task(self._handle_quota_pause(delay))
 
             # Do NOT increment attempt counter for quota errors, just restart the loop
+            continue
+
+          # --- Availability Error Handling ---
+          if isinstance(e, google_exceptions.ServiceUnavailable) or (
+              isinstance(e, google_genai_errors.ClientError)
+              and hasattr(e, "response")
+              and e.response is not None
+              and e.response.status == 503
+          ):
+            async with self._system_availability_lock:
+              if self._system_available_event.is_set():
+                logging.warning(
+                    f"{log_prefix} Service unavailable. Initiating global"
+                    " backoff."
+                )
+                self._system_available_event.clear()
+                delay = self._backoff_delay
+                asyncio.create_task(self._handle_availability_pause(delay))
+                # Increase the backoff for the next potential failure
+                self._backoff_delay = min(
+                    self._backoff_delay**2, self._max_backoff_delay
+                )
+            # Do not increment the attempt counter for availability errors
             continue
 
           # --- Generic Error Handling ---
@@ -334,6 +392,13 @@ class GenaiModel:
           error_msg = ", ".join(error_parts)
           logging.error(error_msg)
 
+          # Increment the non-quota failure count in the stats object
+          stats["non_quota_failures"] += 1
+          if resp and "total_token_count" in resp:
+            stats["total_token_used"] = resp.get("total_token_count")
+            stats["prompt_token_count"] = resp.get("prompt_token_count")
+            stats["candidates_token_count"] = resp.get("candidates_token_count")
+
           failed_tries.append({
               "attempt_index": attempt,
               "error_message": str(e),
@@ -342,13 +407,10 @@ class GenaiModel:
           })
 
           attempt += 1
+          temperature += 0.02
           if attempt < retry_attempts:
             # Initialize delay to < 1s, with randomness (jitter)
             delay = random.uniform(0, 1)
-            if str(e).startswith(API_ERROR):
-              # If error we got an API error (e.g. quota, MAX_TOKENS)
-              # add exponential backoff
-              delay = initial_retry_delay**attempt
             logging.info(f"   Retrying in {delay:.2f} seconds...")
             await asyncio.sleep(delay)
           else:
@@ -363,7 +425,11 @@ class GenaiModel:
                 f"Failed to process {log_identifier} after"
                 f" {retry_attempts} attempts."
             )
+            # Mark this job as a complete failure in the stats
+            stats["is_complete_failure"] = True
 
+      # Always append the stats object to the list, regardless of success.
+      stats_list.append(stats)
       queue.task_done()
 
   async def process_prompts_concurrently(
@@ -378,6 +444,13 @@ class GenaiModel:
     """
     Orchestrates the process of generating prompts and processing them
     using a queue and concurrent workers.
+
+    Returns:
+        A tuple containing:
+        - llm_response: A DataFrame with the successful results.
+        - llm_response_stats: A DataFrame with statistics for each job that
+          produced a stats object. Note: This may not include entries for jobs
+          that fail in a way that prevents a stats object from being returned.
     """
     # Queue to hold all the jobs
     queue: asyncio.Queue = asyncio.Queue()
@@ -412,6 +485,10 @@ class GenaiModel:
       job["retry_attempts"] = retry_attempts
       job["initial_retry_delay"] = initial_retry_delay
       job["delay_between_calls_seconds"] = delay_between_calls_seconds
+
+      # Ensure a stats object exists for every job
+      if "stats" not in job or job["stats"] is None:
+        job["stats"] = {}
 
       await queue.put(job)
 
@@ -469,6 +546,7 @@ class GenaiModel:
       system_prompt: Optional[str] = None,
       response_mime_type: Optional[str] = None,
       response_schema: Optional[Dict[str, Any]] = None,
+      thinking_budget: Optional[int] = None,
   ) -> Optional[Dict[str, Any]]:
     """Calls the Gemini model with the given prompt.
 
@@ -479,6 +557,7 @@ class GenaiModel:
       system_prompt: The system prompt to use for the model.
       response_mime_type: The response mime type to use for the model.
       response_schema: The response schema to use for the model.
+      thinking_budget: The token budget for the model's thinking process.
 
     Returns:
       A dictionary containing the model's response and token count,
@@ -486,6 +565,12 @@ class GenaiModel:
     """
     if not prompt:
       raise ValueError("Prompt must be present to call Gemini.")
+
+    thinking_config = (
+        genai.types.ThinkingConfig(thinking_budget=thinking_budget)
+        if thinking_budget is not None
+        else None
+    )
 
     try:
       response = await self.client.aio.models.generate_content(
@@ -497,6 +582,7 @@ class GenaiModel:
               safety_settings=self.safety_settings,
               response_mime_type=response_mime_type,
               response_schema=response_schema,
+              thinking_config=thinking_config,
               automatic_function_calling=genai.types.AutomaticFunctionCallingConfig(
                   maximum_remote_calls=MAX_CONCURRENT_CALLS
               ),
@@ -509,7 +595,32 @@ class GenaiModel:
 
       candidate = response.candidates[0]
 
-      if candidate.finish_reason.name != "STOP":
+      if (
+          candidate.content.parts
+          and hasattr(candidate.content.parts[0], "function_call")
+          and candidate.content.parts[0].function_call
+          and candidate.content.parts[0].function_call.name
+      ):
+        function_call = candidate.content.parts[0].function_call
+        return {
+            "function_name": function_call.name,
+            "function_args": json_format.MessageToDict(function_call.args),
+            "text": "",  # Ensure text field exists to avoid key errors
+            "total_token_count": response.usage_metadata.total_token_count,
+            "prompt_token_count": response.usage_metadata.prompt_token_count,
+            "candidates_token_count": (
+                response.usage_metadata.candidates_token_count
+            ),
+            "tool_use_prompt_token_count": (
+                response.usage_metadata.tool_use_prompt_token_count
+            ),
+            "thoughts_token_count": (
+                response.usage_metadata.thoughts_token_count
+            ),
+            "error": None,
+        }
+
+      if candidate.finish_reason and candidate.finish_reason.name != "STOP":
         logging.error(
             "The model stopped generating for a reason: '%s' for: %s",
             candidate.finish_reason.name,
@@ -523,7 +634,9 @@ class GenaiModel:
         }
 
       return {
-          "text": candidate.content.parts[0].text,
+          "text": (
+              candidate.content.parts[0].text if candidate.content.parts else ""
+          ),
           "total_token_count": response.usage_metadata.total_token_count,
           "prompt_token_count": response.usage_metadata.prompt_token_count,
           "candidates_token_count": (
