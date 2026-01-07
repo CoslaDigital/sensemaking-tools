@@ -1,6 +1,8 @@
 {
-  "name": "web-ui",
-  "version": "0.0.0",
+  "name": "@cosla/sensemaking-web-ui",
+  "version": "1.0.0",
+  "description": "Provides interactive visualizations and report from sensemaking-tools output. Fork of Jigsaw's sensemaking-tools web-ui (https://github.com/Jigsaw-Code/sensemaking-tools).",
+  "homepage": "https://github.com/CoslaDigital/sensemaking-tools#readme",
   "scripts": {
     "ng": "ng",
     "build": "ng build",
@@ -9,9 +11,43 @@
     "serve:ssr:web-ui": "node dist/web-ui/server/server.mjs",
     "start:api-server": "nodemon --watch ../api-server --watch ../library ../api-server/index.ts",
     "start:web-ui": "ng serve",
-    "dev": "concurrently --kill-others \"npm run start:api-server\" \"npm run start:web-ui\""
+    "dev": "concurrently --kill-others \"npm run start:api-server\" \"npm run start:web-ui\"",
+    "prepublishOnly": "echo 'Publishing @cosla/sensemaking-web-ui'"
   },
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CoslaDigital/sensemaking-tools.git"
+  },
+  "keywords": [
+    "sensemaking",
+    "angular",
+    "visualization",
+    "civic-tech",
+    "public-input",
+    "data-visualization",
+    "web-ui",
+    "dashboard"
+  ],
+  "author": "CoslaDigital",
+  "license": "ISC",
+  "files": [
+    "src/**/*",
+    "public/**/*",
+    "angular.json",
+    "tsconfig.json",
+    "tsconfig.app.json",
+    "tsconfig.spec.json",
+    "karma.conf.js",
+    "server.ts",
+    "site-build.ts",
+    "single-html-build.js",
+    "health_check.js",
+    "package.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@angular/animations": "18.2.13",
     "@angular/cdk": "18.2.13",
