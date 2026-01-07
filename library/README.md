@@ -130,6 +130,11 @@ Then to log in locally run:
 `gcloud config set project <your project name here>`  
 `gcloud auth application-default login`
 
+**Pro Tip**: After setting up authentication, run the health check tool first to verify your setup is working correctly:
+```bash
+npx ts-node ./library/runner-cli/health_check_runner.ts --vertexProject <your-project-id> --outputFile health-check
+```
+
 ## **Example Usage \- Javascript**
 
 Summarize Seattle’s $15 Minimum Wage Conversation.
@@ -172,14 +177,55 @@ const summary = mySensemaker.summarize(
 console.log(summary.getText("MARKDOWN"));
 ```
 
-CLI Usage  
-There is also a simple CLI set up for testing. There are three  tools:
+## CLI Usage
+There is also a simple CLI set up for testing. There are four tools:
 
+* [./library/runner-cli/health_check_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/health_check_runner.ts): comprehensive health check that verifies Google Cloud authentication, Vertex AI connectivity, and model functionality, outputting test results and generated text to files. Run this first to ensure your setup is working before using other tools.
 * [./library/runner-cli/runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/runner.ts): takes in a CSV representing a conversation and outputs an HTML file containing the summary. The summary is best viewed as an HTML file so that the included citations can be hovered over to see the original comment and votes.  
 * [./library/runner-cli/categorization\_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/categorization_runner.ts): takes in a CSV representing a conversation and outputs another CSV with the comments categorized into topics and subtopics.  
 * [./library/runner-cli/advanced\_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/advanced_runner.ts): takes in a CSV representing a conversation and outputs three files for an advanced user more interested in the statistics. The first is a JSON of topics, their sizes, and their subtopics. The second is a JSON with all of the comments and their alignment scores and values. Third is the summary object as a JSON which can be used for additional processing.
 
 These tools process CSV input files.  These must contain the columns `comment_text` and `comment-id`.  For deliberations without group information, vote counts should be set in columns titled `agrees`, `disagrees` and `passes`.  If you do not have vote information, these can be set to 0. For deliberations with group breakdowns, you can set the columns `{group_name}-agree-count`, `{group_name}-disagree-count`, `{group_name}-pass-count`.
+
+These CLI tools can be provided with the following flags:
+
+* `--vertexProject`: The Vertex Project name.
+* `--inputFile`: The input file name.
+* `--outputFile`: The output file name.
+* `--topics`: Optional list of top-level topics.
+* `--modelName`: Optional name of the model to use (defaults to gemini-2.5-pro-preview-06-05).
+* `--keyFilename`: Optional path to the service account key file for authentication.
+
+Examples:
+
+```bash
+# Running the health check tool (run this first to verify your setup)
+npx ts-node ./library/runner-cli/health_check_runner.ts --vertexProject <project-name> --outputFile <output-file-name> --keyFilename <key-file-name> --modelName <model-name>
+
+# Running the categorization tool
+npx ts-node ./library/runner-cli/categorization_runner.ts --vertexProject <project-name> --outputFile <output-file-name> --inputFile <input-file-name> --additionalContext <additional-context> --keyFilename <key-file-name> --modelName <model-name>
+```
+
+## **Generating a Report \- Get a webpage presentation of the report**
+
+![Example of webpage presenting the generated report](./assets/report-page.png)
+
+To build a webpage presenting the results of the report, follow these steps:
+
+* Generate the 3 JSON files produced by running the advanced runner CLI tool (mentioned previously).
+* From the command line, access the web app directory by running `cd web-ui` from the root directory.
+* Then, get the website build (in a folder) by running the following command, being sure to include the paths to each of the 3 JSON files as well as the title of the report. The build will be placed at `web-ui > dist > web-ui`.
+```sh
+npx ts-node site-build.ts --topics <path-to-topics-file> --summary <path-to-summary-file> --comments <path-to-comments-file> --reportTitle "Title of Report"
+```
+* Access the build (using `cd`) and start the web server by running `npm run dev`. Then access the site in a browser at `localhost:4200`.
+
+Alternatively, a single HTML file for the report can be produced, which can be easily shared.
+* After generating the build, run the following command (from `root > web-ui`):
+```sh
+npx ts-node single-html-build.js
+```
+The tool will output the location of the produced HTML file. Access this file in a browser to view the report.
 
 ## **Making Changes to the tools \- Development**
 
