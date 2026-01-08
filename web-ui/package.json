@@ -1,6 +1,6 @@
 {
   "name": "@cosla/sensemaking-web-ui",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "description": "Provides interactive visualizations and report from sensemaking-tools output. Fork of Jigsaw's sensemaking-tools web-ui (https://github.com/Jigsaw-Code/sensemaking-tools).",
   "homepage": "https://github.com/CoslaDigital/sensemaking-tools#readme",
   "scripts": {
@@ -33,6 +33,7 @@
   "files": [
     "src/**/*",
     "public/**/*",
+    "data/**/*",
     "angular.json",
     "tsconfig.json",
     "tsconfig.app.json",
