@@ -105,7 +105,7 @@ function addStatement(
  * @param summary the summary to split.
  * @param outputFilePath Path to the output CSV file that will have columns "summary" for the statement, and "comments" for the comment texts associated with that statement.
  */
-export function writeSummaryToGroundedCSV(summary: Summary, outputFilePath: string) {
+export async function writeSummaryToGroundedCSV(summary: Summary, outputFilePath: string) {
   const statementsWithComments: { summary: string; source: string }[] = [];
 
   for (const summaryContent of summary.contents) {
@@ -119,8 +119,14 @@ export function writeSummaryToGroundedCSV(summary: Summary, outputFilePath: stri
       { id: "source", title: "source" },
     ],
   });
-  csvWriter.writeRecords(statementsWithComments);
-  console.log(`Summary statements saved to ${outputFilePath}`);
+
+  try {
+    await csvWriter.writeRecords(statementsWithComments);
+    console.log(`Summary statements saved to ${outputFilePath}`);
+  } catch (error) {
+    console.error("Error writing CSV file:", error);
+    throw error;
+  }
 }
 /**
  * Identify topics and subtopics when input data has not already been categorized.

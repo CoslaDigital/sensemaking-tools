@@ -73,11 +73,14 @@ async function main(): Promise<void> {
   const markdownContent = summary.getText("MARKDOWN");
   writeFileSync(options.outputBasename + "-summary.md", markdownContent);
   writeSummaryToHtml(summary, options.outputBasename + "-summary.html");
-  writeSummaryToGroundedCSV(summary, options.outputBasename + "-summaryAndSource.csv");
+  await writeSummaryToGroundedCSV(summary, options.outputBasename + "-summaryAndSource.csv");
 
   const jsonContent = JSON.stringify(summary, null, 2);
   writeFileSync(options.outputBasename + "-summary.json", jsonContent);
   process.exit(0);
 }
 
-main();
+main().catch((error) => {
+  console.error("Error:", error);
+  process.exit(1);
+});
