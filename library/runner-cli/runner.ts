@@ -77,6 +77,7 @@ async function main(): Promise<void> {
 
   const jsonContent = JSON.stringify(summary, null, 2);
   writeFileSync(options.outputBasename + "-summary.json", jsonContent);
+  process.exit(0);
 }
 
 main();
