@@ -39,10 +39,18 @@ import {
   writeSummaryToGroundedCSV,
   writeSummaryToHtml,
 } from "./runner_utils";
+import {
+  addSensemakerModelOptions,
+  createModelFromCliOptions,
+  parseSensemakerModelOpts,
+  validateSensemakerModelOpts,
+  warnCategorizationBatchSizeForVertex,
+} from "./sensemaker_model_cli";
 
 async function main(): Promise<void> {
   // Parse command line arguments.
   const program = new Command();
+  addSensemakerModelOptions(program);
   program
     .option(
       "-o, --outputBasename <file>",
@@ -52,23 +60,17 @@ async function main(): Promise<void> {
     .option(
       "-a, --additionalContext <context>",
       "A short description of the conversation to add context."
-    )
-    .option("-v, --vertexProject <project>", "The Vertex Project name.")
-    .option("-k, --keyFilename <file>", "Path to the service account key file for authentication.")
-    .option("-m, --modelName <model>", "The name of the model to use (defaults to gemini-2.5-pro-preview-06-05).");
+    );
   program.parse(process.argv);
   const options = program.opts();
+  const modelOpts = parseSensemakerModelOpts(options, program);
+  validateSensemakerModelOpts(modelOpts);
+  warnCategorizationBatchSizeForVertex(modelOpts);
+  const model = createModelFromCliOptions(modelOpts);
 
   const comments = await getCommentsFromCsv(options.inputFile);
 
-  const summary = await getSummary(
-    options.vertexProject,
-    comments,
-    undefined,
-    options.additionalContext,
-    options.keyFilename,
-    options.modelName
-  );
+  const summary = await getSummary(model, comments, undefined, options.additionalContext);
 
   const markdownContent = summary.getText("MARKDOWN");
   writeFileSync(options.outputBasename + "-summary.md", markdownContent);

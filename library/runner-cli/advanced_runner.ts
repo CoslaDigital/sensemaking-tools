@@ -36,6 +36,13 @@
 import { Command } from "commander";
 import { writeFileSync } from "fs";
 import { concatTopics, getCommentsFromCsv, getSummary } from "./runner_utils";
+import {
+  addSensemakerModelOptions,
+  createModelFromCliOptions,
+  parseSensemakerModelOpts,
+  validateSensemakerModelOpts,
+  warnCategorizationBatchSizeForVertex,
+} from "./sensemaker_model_cli";
 import { MajoritySummaryStats } from "../src/stats/majority_vote";
 import { TopicStats } from "../src/stats/summary_stats";
 import { RelativeContext } from "../src/tasks/summarization_subtasks/relative_context";
@@ -147,6 +154,7 @@ function getCommentsWithScores(
 async function main(): Promise<void> {
   // Parse command line arguments.
   const program = new Command();
+  addSensemakerModelOptions(program);
   program
     .option(
       "-o, --outputBasename <file>",
@@ -156,12 +164,13 @@ async function main(): Promise<void> {
     .option(
       "-a, --additionalContext <context>",
       "A short description of the conversation to add context."
-    )
-    .option("-v, --vertexProject <project>", "The Vertex Project name.")
-    .option("-k, --keyFilename <file>", "Path to the service account key file for authentication.")
-    .option("-m, --modelName <model>", "The name of the model to use (defaults to gemini-2.5-pro-preview-06-05).");
+    );
   program.parse(process.argv);
   const options = program.opts();
+  const modelOpts = parseSensemakerModelOpts(options, program);
+  validateSensemakerModelOpts(modelOpts);
+  warnCategorizationBatchSizeForVertex(modelOpts);
+  const model = createModelFromCliOptions(modelOpts);
 
   const comments = await getCommentsFromCsv(options.inputFile);
   const stats = new MajoritySummaryStats(comments);
@@ -187,12 +196,10 @@ async function main(): Promise<void> {
     );
 
     const summary = await getSummary(
-      options.vertexProject,
+      model,
       comments,
       undefined,
-      options.additionalContext,
-      options.keyFilename,
-      options.modelName
+      options.additionalContext
     );
     writeFileSync(options.outputBasename + "-summary.json", JSON.stringify(summary, null, 2));
 

@@ -25,8 +25,6 @@
 //    --vertexProject "{CLOUD_PROJECT_ID}" \
 //    --inputFile ~/input.csv \
 
-import { VertexModel } from "../src/models/vertex_model";
-import { OllamaModel } from "../src/models/ollama_model";
 import { Sensemaker } from "../src/sensemaker";
 import { Comment, Topic } from "../src/types";
 import { Command } from "commander";
@@ -35,6 +33,13 @@ import { createObjectCsvWriter } from "csv-writer";
 import * as fs from "fs";
 import * as path from "path";
 import { concatTopics } from "./runner_utils";
+import {
+  addSensemakerModelOptions,
+  createModelFromCliOptions,
+  parseSensemakerModelOpts,
+  validateSensemakerModelOpts,
+  warnCategorizationBatchSizeForVertex,
+} from "./sensemaker_model_cli";
 
 type CommentCsvRow = {
   "comment-id": string;
@@ -45,11 +50,11 @@ type CommentCsvRow = {
 async function main(): Promise<void> {
   // Parse command line arguments.
   const program = new Command();
+  addSensemakerModelOptions(program);
   program
     .option("-o, --outputFile <file>", "The output file name.")
     .option("-i, --inputFile <file>", "The input file name.")
     .option("-t, --topics <comma separated list>", "Optional list of top-level topics.")
-    .option("-m, --modelName <model>", "The name of the model to use (defaults to gemini-2.5-pro-preview-06-05).")
     .option(
       "-d, --topicDepth [number]",
       "If set, will learn only topics (1), topics and subtopics (2), or topics, subtopics, and subsubtopics (3). The default is 2.",
@@ -59,14 +64,16 @@ async function main(): Promise<void> {
       "-a, --additionalContext <instructions>",
       "A short description of the conversation to add context."
     )
-    .option("-v, --vertexProject <project>", "The Vertex Project name.")
     .option(
       "-f, --forceRerun",
       "Force rerun of categorization, ignoring existing topics in the input file."
-    )
-    .option("-k, --keyFilename <file>", "Path to the service account key file for authentication.");
+    );
   program.parse(process.argv);
   const options = program.opts();
+  const modelOpts = parseSensemakerModelOpts(options, program);
+  validateSensemakerModelOpts(modelOpts);
+  warnCategorizationBatchSizeForVertex(modelOpts);
+  const defaultModel = createModelFromCliOptions(modelOpts);
   options.topicDepth = parseInt(options.topicDepth);
   if (![1, 2, 3].includes(options.topicDepth)) {
     throw Error("topicDepth must be one of 1, 2, or 3");
@@ -83,8 +90,7 @@ async function main(): Promise<void> {
 
   // Learn topics and categorize comments.
   const sensemaker = new Sensemaker({
-    defaultModel: new VertexModel(options.vertexProject, "global", options.modelName, options.keyFilename),
-    //defaultModel: new OllamaModel(undefined, options.modelName),
+    defaultModel,
   });
   const topics = options.topics ? getTopics(options.topics) : undefined;
   const categorizedComments = await sensemaker.categorizeComments(
