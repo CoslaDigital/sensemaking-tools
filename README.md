@@ -180,30 +180,71 @@ console.log(summary.getText("MARKDOWN"));
 ## CLI Usage
 There is also a simple CLI set up for testing. There are four tools:
 
-* [./library/runner-cli/health_check_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/health_check_runner.ts): comprehensive health check that verifies Google Cloud authentication, Vertex AI connectivity, and model functionality, outputting test results and generated text to files. Run this first to ensure your setup is working before using other tools.
+* [./library/runner-cli/health_check_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/health_check_runner.ts): health check for your chosen LLM backend. With Vertex (default), it verifies Google Cloud authentication, Vertex AI connectivity, and model output. With Ollama, it calls `GET /api/tags`, confirms the requested model is available, and runs a short generate probe. Writes results to the file given by `--outputFile`.
 * [./library/runner-cli/runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/runner.ts): takes in a CSV representing a conversation and outputs an HTML file containing the summary. The summary is best viewed as an HTML file so that the included citations can be hovered over to see the original comment and votes.  
 * [./library/runner-cli/categorization\_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/categorization_runner.ts): takes in a CSV representing a conversation and outputs another CSV with the comments categorized into topics and subtopics.  
 * [./library/runner-cli/advanced\_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/advanced_runner.ts): takes in a CSV representing a conversation and outputs three files for an advanced user more interested in the statistics. The first is a JSON of topics, their sizes, and their subtopics. The second is a JSON with all of the comments and their alignment scores and values. Third is the summary object as a JSON which can be used for additional processing.
 
 These tools process CSV input files.  These must contain the columns `comment_text` and `comment-id`.  For deliberations without group information, vote counts should be set in columns titled `agrees`, `disagrees` and `passes`.  If you do not have vote information, these can be set to 0. For deliberations with group breakdowns, you can set the columns `{group_name}-agree-count`, `{group_name}-disagree-count`, `{group_name}-pass-count`.
 
-These CLI tools can be provided with the following flags:
+The health check, categorization, runner, and advanced CLIs share the same LLM-related options (see `library/runner-cli/sensemaker_model_cli.ts`). Run them with `npx ts-node` from the repo root using paths like `./library/runner-cli/...`, or `cd library` and use `./runner-cli/...`.
 
-* `--vertexProject`: The Vertex Project name.
-* `--inputFile`: The input file name.
-* `--outputFile`: The output file name.
-* `--topics`: Optional list of top-level topics.
-* `--modelName`: Optional name of the model to use (defaults to gemini-2.5-pro-preview-06-05).
-* `--keyFilename`: Optional path to the service account key file for authentication.
+### Shared LLM flags
+
+* `--backend <vertex|ollama>`: Which API to use. Default: `vertex`.
+* `--vertexProject <project>`: Google Cloud project id. Required when `--backend` is `vertex`.
+* `--baseUrl <url>`: Root URL of the LLM HTTP API. For Ollama this is the server root (default: `http://localhost:11434`). Ignored for Vertex except that a default is still accepted by the parser.
+* `-m, --modelName <model>`: Model id for the backend. Vertex default: `gemini-2.5-pro-preview-06-05`. Ollama default: `gemma3:latest`.
+* `-k, --keyFilename <path>`: Service account JSON key for Vertex (optional if you use Application Default Credentials).
+* `--categorizationBatchSize <n>`: Number of statements per categorization batch. Only used when `--backend` is `ollama` (Vertex always uses batch size `100`; if you pass this flag with Vertex, it is ignored and a warning is printed).
+
+### Tool-specific flags
+
+* **health_check_runner:** `--outputFile` (required): path to the report file.
+* **categorization_runner:** `--inputFile`, `--outputFile`; optional `--topics`, `--topicDepth` (1–3), `--additionalContext`, `--forceRerun`.
+* **runner:** `--inputFile`, `--outputBasename` (prefix for `summary.md` / `.html` / `.json` / etc.); optional `--additionalContext`.
+* **advanced_runner:** `--inputFile`, `--outputBasename`; optional `--additionalContext`. Expects comments to already include topics (run categorization first).
 
 Examples:
 
 ```bash
-# Running the health check tool (run this first to verify your setup)
-npx ts-node ./library/runner-cli/health_check_runner.ts --vertexProject <project-name> --outputFile <output-file-name> --keyFilename <key-file-name> --modelName <model-name>
+# Health check — Vertex (default backend)
+npx ts-node ./library/runner-cli/health_check_runner.ts \
+  --vertexProject <project-name> \
+  --outputFile health-check.txt \
+  --keyFilename <key-file-name> \
+  --modelName <vertex-model-name>
 
-# Running the categorization tool
-npx ts-node ./library/runner-cli/categorization_runner.ts --vertexProject <project-name> --outputFile <output-file-name> --inputFile <input-file-name> --additionalContext <additional-context> --keyFilename <key-file-name> --modelName <model-name>
+# Health check — Ollama (ensure Ollama is running and the model is pulled)
+npx ts-node ./library/runner-cli/health_check_runner.ts \
+  --backend ollama \
+  --baseUrl http://localhost:11434 \
+  --modelName gemma3:latest \
+  --outputFile health-check-ollama.txt
+
+# Categorization — Vertex
+npx ts-node ./library/runner-cli/categorization_runner.ts \
+  --vertexProject <project-name> \
+  --inputFile <input.csv> \
+  --outputFile <output.csv> \
+  --additionalContext "Short description of the conversation" \
+  --modelName <vertex-model-name>
+
+# Categorization — Ollama
+npx ts-node ./library/runner-cli/categorization_runner.ts \
+  --backend ollama \
+  --baseUrl http://localhost:11434 \
+  --modelName gemma3:latest \
+  --categorizationBatchSize 5 \
+  --inputFile <input.csv> \
+  --outputFile <output.csv> \
+  --additionalContext "Short description of the conversation"
+
+# Summary runner — Ollama (same shared flags)
+npx ts-node ./library/runner-cli/runner.ts \
+  --backend ollama \
+  --inputFile <input.csv> \
+  --outputBasename ./out/run
 ```
 
 ## **Generating a Report \- Get a webpage presentation of the report**
