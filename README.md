@@ -191,10 +191,20 @@ The health check, categorization, runner, and advanced CLIs share the same LLM-r
 
 ### Shared LLM flags
 
-* `--backend <vertex|ollama>`: Which API to use. Default: `vertex`.
+* `--backend <vertex|ollama|openai-compatible>`: Which API backend to use. Default: `vertex`.
+* `--provider <openai|together|mistral>`: Required when `--backend` is `openai-compatible`.
 * `--vertexProject <project>`: Google Cloud project id. Required when `--backend` is `vertex`.
-* `--baseUrl <url>`: Root URL of the LLM HTTP API. For Ollama this is the server root (default: `http://localhost:11434`). Ignored for Vertex except that a default is still accepted by the parser.
-* `-m, --modelName <model>`: Model id for the backend. Vertex default: `gemini-2.5-pro-preview-06-05`. Ollama default: `gemma3:latest`.
+* `--vertexLocation <location>`: Vertex location/region when `--backend` is `vertex`. Default: `global`.
+* `--baseUrl <url>`: Root URL of the provider API. Defaults by backend/provider:
+  * Ollama: `http://localhost:11434`
+  * OpenAI: `https://api.openai.com/v1`
+  * Together: `https://api.together.xyz/v1`
+  * Mistral: `https://api.mistral.ai/v1`
+* `-m, --modelName <model>`: Model id for the backend. Vertex default: `gemini-2.5-pro-preview-06-05`. Ollama default: `gemma3:latest`. Required for `openai-compatible`.
+* `--apiKey <token>`: API key for `openai-compatible`. Optional if provider env var is set:
+  * OpenAI: `OPENAI_API_KEY`
+  * Together: `TOGETHER_API_KEY`
+  * Mistral: `MISTRAL_API_KEY`
 * `-k, --keyFilename <path>`: Service account JSON key for Vertex (optional if you use Application Default Credentials).
 * `--categorizationBatchSize <n>`: Number of statements per categorization batch. Only used when `--backend` is `ollama` (Vertex always uses batch size `100`; if you pass this flag with Vertex, it is ignored and a warning is printed).
 
@@ -215,12 +225,40 @@ npx ts-node ./library/runner-cli/health_check_runner.ts \
   --keyFilename <key-file-name> \
   --modelName <vertex-model-name>
 
+# Health check — Vertex with explicit location override
+npx ts-node ./library/runner-cli/health_check_runner.ts \
+  --vertexProject <project-name> \
+  --vertexLocation us-central1 \
+  --outputFile health-check-us-central1.txt \
+  --modelName <vertex-model-name>
+
 # Health check — Ollama (ensure Ollama is running and the model is pulled)
 npx ts-node ./library/runner-cli/health_check_runner.ts \
   --backend ollama \
   --baseUrl http://localhost:11434 \
   --modelName gemma3:latest \
   --outputFile health-check-ollama.txt
+
+# Health check — OpenAI-compatible (OpenAI)
+npx ts-node ./library/runner-cli/health_check_runner.ts \
+  --backend openai-compatible \
+  --provider openai \
+  --modelName gpt-4o-mini \
+  --outputFile health-check-openai.txt
+
+# Health check — OpenAI-compatible (Together)
+npx ts-node ./library/runner-cli/health_check_runner.ts \
+  --backend openai-compatible \
+  --provider together \
+  --modelName openai/gpt-oss-20b \
+  --outputFile health-check-together.txt
+
+# Health check — OpenAI-compatible (Mistral)
+npx ts-node ./library/runner-cli/health_check_runner.ts \
+  --backend openai-compatible \
+  --provider mistral \
+  --modelName mistral-small-latest \
+  --outputFile health-check-mistral.txt
 
 # Categorization — Vertex
 npx ts-node ./library/runner-cli/categorization_runner.ts \
@@ -245,6 +283,14 @@ npx ts-node ./library/runner-cli/runner.ts \
   --backend ollama \
   --inputFile <input.csv> \
   --outputBasename ./out/run
+
+# Summary runner — Together (openai-compatible)
+npx ts-node ./library/runner-cli/runner.ts \
+  --backend openai-compatible \
+  --provider together \
+  --modelName openai/gpt-oss-20b \
+  --inputFile <input.csv> \
+  --outputBasename ./out/run-together
 ```
 
 ## **Generating a Report \- Get a webpage presentation of the report**

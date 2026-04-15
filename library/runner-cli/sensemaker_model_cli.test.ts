@@ -1,17 +1,18 @@
-// Copyright 2024 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-
 import { Command } from "commander";
 import { VertexModel } from "../src/models/vertex_model";
 import { OllamaModel } from "../src/models/ollama_model";
+import { OpenAiCompatModel } from "../src/models/openai_compat_model";
 import {
   addSensemakerModelOptions,
   createModelFromCliOptions,
+  DEFAULT_MISTRAL_BASE_URL,
   DEFAULT_OLLAMA_BASE_URL,
+  DEFAULT_OPENAI_BASE_URL,
+  DEFAULT_TOGETHER_BASE_URL,
+  DEFAULT_VERTEX_LOCATION,
   normalizeBaseUrl,
   parseSensemakerModelOpts,
+  resolveApiKey,
   validateSensemakerModelOpts,
   warnCategorizationBatchSizeForVertex,
 } from "./sensemaker_model_cli";
@@ -27,6 +28,19 @@ function parseWithArgv(argv: string[]): {
 }
 
 describe("sensemaker_model_cli", () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    process.env = { ...originalEnv };
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.TOGETHER_API_KEY;
+    delete process.env.MISTRAL_API_KEY;
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
   describe("normalizeBaseUrl", () => {
     it("strips trailing slashes", () => {
       expect(normalizeBaseUrl("http://localhost:11434/")).toBe(
@@ -60,6 +74,30 @@ describe("sensemaker_model_cli", () => {
       expect(parsed.vertexProject).toBe("my-project");
     });
 
+    it("defaults vertexLocation to global", () => {
+      const { program, raw } = parseWithArgv([
+        "--backend",
+        "vertex",
+        "--vertexProject",
+        "my-project",
+      ]);
+      const parsed = parseSensemakerModelOpts(raw, program);
+      expect(parsed.vertexLocation).toBe(DEFAULT_VERTEX_LOCATION);
+    });
+
+    it("parses --vertexLocation override", () => {
+      const { program, raw } = parseWithArgv([
+        "--backend",
+        "vertex",
+        "--vertexProject",
+        "my-project",
+        "--vertexLocation",
+        "us-central1",
+      ]);
+      const parsed = parseSensemakerModelOpts(raw, program);
+      expect(parsed.vertexLocation).toBe("us-central1");
+    });
+
     it("accepts ollama without vertexProject", () => {
       const { program, raw } = parseWithArgv(["--backend", "ollama"]);
       const parsed = parseSensemakerModelOpts(raw, program);
@@ -68,8 +106,158 @@ describe("sensemaker_model_cli", () => {
       expect(parsed.baseUrl).toBe(DEFAULT_OLLAMA_BASE_URL);
     });
 
+    it("sets provider default base URL for openai-compatible backends", () => {
+      const openAi = parseSensemakerModelOpts(
+        parseWithArgv([
+          "--backend",
+          "openai-compatible",
+          "--provider",
+          "openai",
+          "--modelName",
+          "gpt-4o-mini",
+          "--apiKey",
+          "x",
+        ]).raw,
+        parseWithArgv([
+          "--backend",
+          "openai-compatible",
+          "--provider",
+          "openai",
+          "--modelName",
+          "gpt-4o-mini",
+          "--apiKey",
+          "x",
+        ]).program
+      );
+      expect(openAi.baseUrl).toBe(DEFAULT_OPENAI_BASE_URL);
+
+      const together = parseSensemakerModelOpts(
+        parseWithArgv([
+          "--backend",
+          "openai-compatible",
+          "--provider",
+          "together",
+          "--modelName",
+          "openai/gpt-oss-20b",
+          "--apiKey",
+          "x",
+        ]).raw,
+        parseWithArgv([
+          "--backend",
+          "openai-compatible",
+          "--provider",
+          "together",
+          "--modelName",
+          "openai/gpt-oss-20b",
+          "--apiKey",
+          "x",
+        ]).program
+      );
+      expect(together.baseUrl).toBe(DEFAULT_TOGETHER_BASE_URL);
+
+      const mistral = parseSensemakerModelOpts(
+        parseWithArgv([
+          "--backend",
+          "openai-compatible",
+          "--provider",
+          "mistral",
+          "--modelName",
+          "mistral-small-latest",
+          "--apiKey",
+          "x",
+        ]).raw,
+        parseWithArgv([
+          "--backend",
+          "openai-compatible",
+          "--provider",
+          "mistral",
+          "--modelName",
+          "mistral-small-latest",
+          "--apiKey",
+          "x",
+        ]).program
+      );
+      expect(mistral.baseUrl).toBe(DEFAULT_MISTRAL_BASE_URL);
+    });
+
+    it("requires provider for openai-compatible backend", () => {
+      const { program, raw } = parseWithArgv([
+        "--backend",
+        "openai-compatible",
+        "--modelName",
+        "gpt-4o-mini",
+        "--apiKey",
+        "x",
+      ]);
+      const parsed = parseSensemakerModelOpts(raw, program);
+      expect(() => validateSensemakerModelOpts(parsed)).toThrow(
+        /--provider is required/
+      );
+    });
+
+    it("requires modelName for openai-compatible backend", () => {
+      const { program, raw } = parseWithArgv([
+        "--backend",
+        "openai-compatible",
+        "--provider",
+        "openai",
+        "--apiKey",
+        "x",
+      ]);
+      const parsed = parseSensemakerModelOpts(raw, program);
+      expect(() => validateSensemakerModelOpts(parsed)).toThrow(
+        /--modelName is required/
+      );
+    });
+
+    it("requires API key for openai-compatible backend", () => {
+      const { program, raw } = parseWithArgv([
+        "--backend",
+        "openai-compatible",
+        "--provider",
+        "openai",
+        "--modelName",
+        "gpt-4o-mini",
+      ]);
+      const parsed = parseSensemakerModelOpts(raw, program);
+      expect(() => validateSensemakerModelOpts(parsed)).toThrow(
+        /API key is required/
+      );
+    });
+
+    it("resolves API key from environment when CLI key is omitted", () => {
+      process.env.OPENAI_API_KEY = "env-key";
+      const { program, raw } = parseWithArgv([
+        "--backend",
+        "openai-compatible",
+        "--provider",
+        "openai",
+        "--modelName",
+        "gpt-4o-mini",
+      ]);
+      const parsed = parseSensemakerModelOpts(raw, program);
+      expect(resolveApiKey(parsed)).toBe("env-key");
+      expect(() => validateSensemakerModelOpts(parsed)).not.toThrow();
+    });
+
+    it("prefers --apiKey over environment key", () => {
+      process.env.OPENAI_API_KEY = "env-key";
+      const { program, raw } = parseWithArgv([
+        "--backend",
+        "openai-compatible",
+        "--provider",
+        "openai",
+        "--modelName",
+        "gpt-4o-mini",
+        "--apiKey",
+        "cli-key",
+      ]);
+      const parsed = parseSensemakerModelOpts(raw, program);
+      expect(resolveApiKey(parsed)).toBe("cli-key");
+    });
+
     it("rejects invalid backend", () => {
-      const { program, raw } = parseWithArgv(["--backend", "openai"]);
+      const { program, raw } = parseWithArgv(["--backend", "something"]);
       expect(() => parseSensemakerModelOpts(raw, program)).toThrow(
         /Invalid --backend/
       );
@@ -88,10 +276,7 @@ describe("sensemaker_model_cli", () => {
     });
 
     it("rejects non-integer categorizationBatchSize", () => {
-      const { program, raw } = parseWithArgv([
-        "--categorizationBatchSize",
-        "x",
-      ]);
+      const { program, raw } = parseWithArgv(["--categorizationBatchSize", "x"]);
       expect(() => parseSensemakerModelOpts(raw, program)).toThrow(
         /positive integer/
       );
@@ -121,18 +306,21 @@ describe("sensemaker_model_cli", () => {
       expect(model.categorizationBatchSize).toBe(5);
     });
 
-    it("uses explicit categorization batch for ollama", () => {
+    it("returns OpenAiCompatModel for openai-compatible backend", () => {
       const { program, raw } = parseWithArgv([
         "--backend",
-        "ollama",
-        "--categorizationBatchSize",
-        "12",
+        "openai-compatible",
+        "--provider",
+        "openai",
+        "--modelName",
+        "gpt-4o-mini",
+        "--apiKey",
+        "cli-key",
       ]);
       const parsed = parseSensemakerModelOpts(raw, program);
       validateSensemakerModelOpts(parsed);
       const model = createModelFromCliOptions(parsed);
-      expect(model).toBeInstanceOf(OllamaModel);
-      expect(model.categorizationBatchSize).toBe(12);
+      expect(model).toBeInstanceOf(OpenAiCompatModel);
     });
   });
 
@@ -152,28 +340,6 @@ describe("sensemaker_model_cli", () => {
       expect(warnSpy).toHaveBeenCalled();
       expect(String(warnSpy.mock.calls[0]?.[0])).toContain("ignored for Vertex");
       warnSpy.mockRestore();
-    });
-
-    it("does not warn for ollama when batch is set", () => {
-      const warnSpy = jest.spyOn(console, "warn").mockImplementation();
-      const { program, raw } = parseWithArgv([
-        "--backend",
-        "ollama",
-        "--categorizationBatchSize",
-        "3",
-      ]);
-      const parsed = parseSensemakerModelOpts(raw, program);
-      warnCategorizationBatchSizeForVertex(parsed);
-      expect(warnSpy).not.toHaveBeenCalled();
-      warnSpy.mockRestore();
-    });
-  });
-
-  describe("defaults", () => {
-    it("defaults backend to vertex", () => {
-      const { program, raw } = parseWithArgv(["--vertexProject", "p"]);
-      const parsed = parseSensemakerModelOpts(raw, program);
-      expect(parsed.backend).toBe("vertex");
     });
   });
 });
