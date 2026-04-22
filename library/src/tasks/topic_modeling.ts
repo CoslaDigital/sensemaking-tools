@@ -29,6 +29,7 @@ Aim for a balanced number of topics that effectively summarizes the key themes w
 After analysis of the comments, determine the optimal number of topics to represent the content effectively.
 Justify why having fewer topics would be less optimal (potentially oversimplifying and missing key nuances), and why having more topics would also be less optimal (potentially leading to redundancy and a less clear overall structure).
 After determining the optimal number of topics, identify those topics.
+Keep topic names short e.g. 1-6 words.
 `;
 
 export function learnSubtopicsForOneTopicPrompt(parentTopic: Topic, otherTopics?: Topic[]): string {
@@ -43,7 +44,10 @@ Justify why having fewer subtopics would be less optimal (potentially oversimpli
 After determining the optimal number of subtopics, identify those subtopics.
 
 Important Considerations:
+- Output must be a JSON array of topic objects using this structure: [{"name": "<top-level-topic>", "subtopics": [{"name": "<subtopic>"}]}].
+- You may optionally include one additional top-level object named "Other" if needed for uncategorizable comments.
 - No subtopics should have the same name as the overarching topic.
+- Top-level name must be copied exactly from the provided parent topic string
 - There are other overarching topics that are being used on different sets of comments, do not use these overarching topic names as identified subtopics names: ${otherTopicNames}
 
 Example of Incorrect Output:

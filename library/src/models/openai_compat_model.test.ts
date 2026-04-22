@@ -27,12 +27,9 @@ describe("OpenAiCompatModel", () => {
 
     const text = await model.generateText("Say hi");
     expect(text).toBe("Hello world");
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.openai.com/v1/chat/completions",
-      expect.objectContaining({
-        method: "POST",
-      })
-    );
+    expect(fetchMock).toHaveBeenCalled();
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.openai.com/v1/chat/completions");
+    expect((fetchMock.mock.calls[0][1] as { method: string }).method).toBe("POST");
   });
 
   it("generateData succeeds with json_schema mode when provider supports it", async () => {
@@ -95,5 +92,32 @@ describe("OpenAiCompatModel", () => {
 
     const data = await model.generateData("return json", schema);
     expect(data).toEqual({ answer: "fallback" });
+  }, 15000);
+
+  it("generateData uses wrapped json_schema format for mistral", async () => {
+    const schema = Type.Object({
+      answer: Type.String(),
+    });
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "{\"answer\":\"ok\"}" } }],
+      }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const model = new OpenAiCompatModel({
+      provider: "mistral",
+      baseUrl: "https://api.mistral.ai/v1",
+      modelName: "mistral-medium-2508",
+      apiKey: "k",
+    });
+
+    const data = await model.generateData("return json", schema);
+    expect(data).toEqual({ answer: "ok" });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.response_format.type).toBe("json_schema");
+    expect(body.response_format.json_schema.name).toBe("sensemaker_response");
+    expect(body.response_format.json_schema.schema).toBeDefined();
   });
 });

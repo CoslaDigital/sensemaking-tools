@@ -1,6 +1,9 @@
 import { TSchema, type Static } from "@sinclair/typebox";
+import pLimit from "p-limit";
 import { Model } from "./model";
 import { checkDataSchema } from "../types";
+import { retryCall } from "../sensemaker_utils";
+import { DEFAULT_PARALLELISM, RETRY_DELAY_MS } from "./model_util";
 
 type OpenAiCompatProvider = "openai" | "together" | "mistral";
 
@@ -29,11 +32,20 @@ interface OpenAiChatCompletionResponse {
   };
 }
 
+function truncateForErrorLog(value: string, maxLen: number = 1200): string {
+  if (value.length <= maxLen) {
+    return value;
+  }
+  return `${value.slice(0, maxLen)}... [truncated ${value.length - maxLen} chars]`;
+}
+
 export class OpenAiCompatModel extends Model {
+  private static readonly DEFAULT_OPENAI_COMPAT_PARALLELISM = 5;
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly modelName: string;
   private readonly provider: OpenAiCompatProvider;
+  private readonly limit: pLimit.Limit;
 
   constructor(options: OpenAiCompatModelOptions) {
     super();
@@ -41,6 +53,14 @@ export class OpenAiCompatModel extends Model {
     this.apiKey = options.apiKey;
     this.modelName = options.modelName;
     this.provider = options.provider;
+    const parallelism =
+      DEFAULT_PARALLELISM ?? OpenAiCompatModel.DEFAULT_OPENAI_COMPAT_PARALLELISM;
+    this.limit = pLimit(parallelism);
+    console.log(
+      "Creating OpenAiCompatModel with ",
+      parallelism,
+      " parallel workers..."
+    );
   }
 
   async generateText(prompt: string): Promise<string> {
@@ -55,25 +75,35 @@ export class OpenAiCompatModel extends Model {
     const modes: ResponseFormatMode[] = ["json_schema", "json_object", "prompt_only"];
     const failures: string[] = [];
     for (const mode of modes) {
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-          const response = await this.callChatCompletions(
-            this.getMessagesForMode(prompt, jsonSchema, mode),
-            this.getResponseFormatForMode(jsonSchema, mode)
-          );
-          const raw = this.extractText(response);
-          const parsed = this.parseJsonFromResponse(raw);
-          if (!checkDataSchema(schema, parsed)) {
-            failures.push(
-              `${mode} attempt ${attempt}: response JSON failed schema validation`
+      let modeAttempt = 0;
+      try {
+        const parsed = await retryCall(
+          async (): Promise<unknown> => {
+            modeAttempt += 1;
+            const response = await this.callChatCompletions(
+              this.getMessagesForMode(prompt, jsonSchema, mode),
+              this.getResponseFormatForMode(jsonSchema, mode)
             );
-            continue;
-          }
-          return parsed as Static<typeof schema>;
-        } catch (error) {
-          failures.push(
-            `${mode} attempt ${attempt}: ${(error as Error).message}`
-          );
+            const raw = this.extractText(response);
+            const parsedResponse = this.parseJsonFromResponse(raw);
+            if (!checkDataSchema(schema, parsedResponse)) {
+              throw new Error("response JSON failed schema validation");
+            }
+            return parsedResponse;
+          },
+          () => true,
+          2,
+          `Failed structured output generation in ${mode} mode.`,
+          RETRY_DELAY_MS,
+          [],
+          []
+        );
+        return parsed as Static<typeof schema>;
+      } catch (error) {
+        // retryCall throws only after attempts are exhausted. Record all attempts for this mode.
+        const message = (error as Error).message;
+        for (let attempt = 1; attempt <= modeAttempt; attempt++) {
+          failures.push(`${mode} attempt ${attempt}: ${message}`);
         }
       }
     }
@@ -97,23 +127,49 @@ export class OpenAiCompatModel extends Model {
       body.response_format = responseFormat;
     }
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
+    const response = await this.limit(async () =>
+      fetch(`${this.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      })
+    );
 
-    const data = (await response.json()) as OpenAiChatCompletionResponse;
+    let rawBody = "";
+    let data: OpenAiChatCompletionResponse | undefined;
+    if (typeof response.text === "function") {
+      rawBody = await response.text();
+      try {
+        data = rawBody ? (JSON.parse(rawBody) as OpenAiChatCompletionResponse) : undefined;
+      } catch {
+        data = undefined;
+      }
+    } else if (typeof response.json === "function") {
+      data = (await response.json()) as OpenAiChatCompletionResponse;
+      rawBody = data ? JSON.stringify(data) : "";
+    }
+
     if (!response.ok) {
-      const providerMessage =
-        data?.error?.message ||
-        `${response.status} ${response.statusText}` ||
-        "Unknown provider error";
+      const providerMessage = data?.error?.message;
+      const statusText = `${response.status} ${response.statusText}`.trim();
+      const detail = rawBody ? truncateForErrorLog(rawBody) : "<empty response body>";
+      const fullMessage = providerMessage
+        ? `${statusText}: ${providerMessage}`
+        : statusText || "Unknown provider error";
+      const contextHint =
+        response.status === 422
+          ? " (unprocessable request; provider rejected payload/params)"
+          : "";
       throw new Error(
-        `OpenAI-compatible API error (${this.provider}): ${providerMessage}`
+        `OpenAI-compatible API error (${this.provider}): ${fullMessage}${contextHint}. Response body: ${detail}`
+      );
+    }
+    if (!data) {
+      throw new Error(
+        `OpenAI-compatible API error (${this.provider}): 200 OK but response body was not valid JSON. Body: ${truncateForErrorLog(rawBody)}`
       );
     }
     return data;
@@ -144,12 +200,8 @@ export class OpenAiCompatModel extends Model {
       return { type: "json_object" };
     }
     if (mode === "json_schema") {
-      if (this.provider === "mistral") {
-        return {
-          type: "json_schema",
-          json_schema: jsonSchema,
-        };
-      }
+      // Mistral expects json_schema to be wrapped with both name and schema.
+      // Raw schema objects (without wrapper) are rejected with 422.
       return {
         type: "json_schema",
         json_schema: {

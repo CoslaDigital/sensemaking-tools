@@ -1,10 +1,14 @@
 import { Model } from "./model";
 import { TSchema, type Static } from "@sinclair/typebox";
+import pLimit from "p-limit";
+import { DEFAULT_PARALLELISM } from "./model_util";
 
 export class OllamaModel extends Model {
+  private static readonly DEFAULT_OLLAMA_PARALLELISM = 5;
   private baseUrl: string;
   private modelName: string;
   public readonly categorizationBatchSize: number;
+  private readonly limit: pLimit.Limit;
 
   constructor(
     baseUrl: string = "http://localhost:11434",
@@ -15,6 +19,9 @@ export class OllamaModel extends Model {
     this.baseUrl = baseUrl;
     this.modelName = modelName;
     this.categorizationBatchSize = categorizationBatchSize;
+    const parallelism = DEFAULT_PARALLELISM ?? OllamaModel.DEFAULT_OLLAMA_PARALLELISM;
+    this.limit = pLimit(parallelism);
+    console.log("Creating OllamaModel with ", parallelism, " parallel workers...");
   }
 
   async generateText(prompt: string): Promise<string> {
@@ -27,13 +34,15 @@ export class OllamaModel extends Model {
       }
     });
 
-    const response = await fetch(`${this.baseUrl}/api/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: bodyString
-    });
+    const response = await this.limit(async () =>
+      fetch(`${this.baseUrl}/api/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: bodyString
+      })
+    );
 
     if (!response.ok) {
       throw new Error(`Ollama API error: ${response.statusText}`);
@@ -53,13 +62,15 @@ export class OllamaModel extends Model {
       format: jsonSchema
     });
 
-    const response = await fetch(`${this.baseUrl}/api/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: bodyString
-    });
+    const response = await this.limit(async () =>
+      fetch(`${this.baseUrl}/api/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: bodyString
+      })
+    );
 
     if (!response.ok) {
       throw new Error(`Ollama API error: ${response.statusText}`);

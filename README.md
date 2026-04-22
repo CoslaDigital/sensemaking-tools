@@ -208,6 +208,15 @@ The health check, categorization, runner, and advanced CLIs share the same LLM-r
 * `-k, --keyFilename <path>`: Service account JSON key for Vertex (optional if you use Application Default Credentials).
 * `--categorizationBatchSize <n>`: Number of statements per categorization batch. Only used when `--backend` is `ollama` (Vertex always uses batch size `100`; if you pass this flag with Vertex, it is ignored and a warning is printed).
 
+### Concurrency environment variables
+
+The model backends also support environment-variable-based request parallelism controls to avoid rate limiting e.g. Tokens Per Minute (TPM) policies:
+
+* `DEFAULT_PARALLELISM`: Shared default parallelism for `openai-compatible` and `ollama` model calls.
+* `DEFAULT_VERTEX_PARALLELISM`: Vertex-specific override for request parallelism.
+  * Precedence for Vertex is: `DEFAULT_VERTEX_PARALLELISM` -> `DEFAULT_PARALLELISM` -> `2`.
+  * This keeps Vertex's default parallelism at `2` when neither variable is set.
+
 ### Tool-specific flags
 
 * **health_check_runner:** `--outputFile` (required): path to the report file.
