@@ -1,6 +1,14 @@
-# **Sensemaker by Jigsaw \- A Google AI Proof of Concept**
+# Sensemaking Tools (Cosla Fork of Jigsaw Sensemaker)
 
-This repository shares tools developed by [Jigsaw](http://jigsaw.google.com) as a proof of concept to help make sense of large-scale online conversations. It demonstrates how Large Language Models (LLMs) like Gemini can be leveraged for such tasks. This library offers a transparent look into Jigsaw's methods for categorization, summarization, and identifying agreement/disagreement in complex text. Our goal in sharing this is to inspire others and provide a potential starting point or useful elements for those tackling similar challenges.
+This repository is maintained by Cosla as a fork of Jigsaw's original [sensemaking-tools](https://github.com/Jigsaw-Code/sensemaking-tools). It demonstrates how Large Language Models (LLMs) can be used for large-scale conversation sensemaking, including categorization, summarization, and agreement/disagreement analysis.
+
+## Project Lineage
+
+This repository is a fork of Jigsaw's original [sensemaking-tools](https://github.com/Jigsaw-Code/sensemaking-tools), maintained by Cosla.
+
+The fork keeps the original sensemaking approach and extends it for our deployment needs (for example: broader adapter/provider support, CLI/runtime integration updates, and ongoing maintenance).
+
+Upstream attribution and license terms are preserved.
 
 # **Overview**
 
