@@ -120,4 +120,74 @@ describe("OpenAiCompatModel", () => {
     expect(body.response_format.json_schema.name).toBe("sensemaker_response");
     expect(body.response_format.json_schema.schema).toBeDefined();
   });
+
+  it("generateData wraps top-level array schema for openai json_schema mode", async () => {
+    const schema = Type.Array(
+      Type.Object({
+        name: Type.String(),
+      })
+    );
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "{\"data\":[{\"name\":\"topic\"}]}" } }],
+      }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const model = new OpenAiCompatModel({
+      provider: "openai",
+      baseUrl: "https://api.openai.com/v1",
+      modelName: "gpt-4o-mini",
+      apiKey: "k",
+    });
+
+    const data = await model.generateData("return json", schema);
+    expect(data).toEqual([{ name: "topic" }]);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.response_format.type).toBe("json_schema");
+    expect(body.response_format.json_schema.schema.type).toBe("object");
+    expect(body.response_format.json_schema.schema.required).toContain("data");
+    expect(body.response_format.json_schema.schema.properties.data.type).toBe("array");
+  });
+
+  it("generateData includes explicit JSON instruction in json_object mode", async () => {
+    const schema = Type.Object({
+      answer: Type.String(),
+    });
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        json: async () => ({ error: { message: "json_schema unsupported" } }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        json: async () => ({ error: { message: "json_schema unsupported" } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: "{\"answer\":\"ok\"}" } }],
+        }),
+      });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const model = new OpenAiCompatModel({
+      provider: "openai",
+      baseUrl: "https://api.openai.com/v1",
+      modelName: "gpt-4o-mini",
+      apiKey: "k",
+    });
+
+    const data = await model.generateData("return json", schema);
+    expect(data).toEqual({ answer: "ok" });
+    const jsonObjectBody = JSON.parse(fetchMock.mock.calls[2][1].body);
+    expect(jsonObjectBody.response_format.type).toBe("json_object");
+    expect(jsonObjectBody.messages[0].content.toLowerCase()).toContain("json");
+  }, 15000);
 });

@@ -39,6 +39,8 @@ function oneShotInstructions(topicNames: string[]) {
     `\n\n` +
     `The structure of the list you output should be in terms of the topic names, in the order that follows. ` +
     `Each list item should start in bold with topic name name (including percentage, exactly as listed below), then a colon, and then a short one or two sentence summary for the corresponding topic.` +
+    `Every bullet must include non-empty summary text after the topic heading; do not leave any bullet blank. ` +
+    `If evidence for a topic is sparse, still provide one neutral sentence (for example: "Statements in this topic were limited and varied, with no single dominant pattern."). ` +
     `The complete response should be only the markdown list, and no other text. ` +
     `For example, a list item might look like this:\n` +
     `<output_format format="markdown">* **Topic Name (45%):**  Topic summary.</output_format>\n` +
@@ -53,7 +55,7 @@ function perTopicInstructions(topicName: string) {
     `These topic and subtopic summaries are based on comments and voting patterns that participants submitted as part of the discussion. ` +
     `This summary will be formatted as a markdown list, to be included near the top of the final report, which shall include the complete topic and subtopic summaries. ` +
     `Do not pretend that you hold any of these opinions. You are not a participant in this discussion. ` +
-    `Where possible, prefer descriging the results in terms of the "statements" submitted or the overall "conversation", rather than in terms of the participants' perspectives (Note: "comments" and "statements" are the same thing, but for the sake of this portion of the summary, only use the term "statements"). ` +
+    `Where possible, prefer describing the results in terms of the "statements" submitted or the overall "conversation", rather than in terms of the participants' perspectives (Note: "comments" and "statements" are the same thing, but for the sake of this portion of the summary, only use the term "statements"). ` +
     `Do not include specific numbers about how many comments were included in each topic or subtopic, as these will be included later in the final report output. ` +
     `You also do not need to recap the context of the conversation, as this will have already been stated earlier in the report. ` +
     `Remember: this is just one component of a larger report, and you should compose this so that it will flow naturally in the context of the rest of the report. ` +

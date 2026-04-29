@@ -13,6 +13,10 @@ type ChatMessage = {
 };
 
 type ResponseFormatMode = "json_schema" | "json_object" | "prompt_only";
+type SchemaPreparation = {
+  requestSchema: Record<string, unknown>;
+  unwrapDataProperty: boolean;
+};
 
 interface OpenAiCompatModelOptions {
   baseUrl: string;
@@ -80,16 +84,20 @@ export class OpenAiCompatModel extends Model {
         const parsed = await retryCall(
           async (): Promise<unknown> => {
             modeAttempt += 1;
+            const schemaPreparation = this.prepareSchemaForMode(jsonSchema, mode);
             const response = await this.callChatCompletions(
-              this.getMessagesForMode(prompt, jsonSchema, mode),
-              this.getResponseFormatForMode(jsonSchema, mode)
+              this.getMessagesForMode(prompt, schemaPreparation.requestSchema, mode),
+              this.getResponseFormatForMode(schemaPreparation.requestSchema, mode)
             );
             const raw = this.extractText(response);
             const parsedResponse = this.parseJsonFromResponse(raw);
-            if (!checkDataSchema(schema, parsedResponse)) {
+            const unwrappedResponse = schemaPreparation.unwrapDataProperty
+              ? this.unwrapDataProperty(parsedResponse)
+              : parsedResponse;
+            if (!checkDataSchema(schema, unwrappedResponse)) {
               throw new Error("response JSON failed schema validation");
             }
-            return parsedResponse;
+            return unwrappedResponse;
           },
           () => true,
           2,
@@ -218,6 +226,16 @@ export class OpenAiCompatModel extends Model {
     jsonSchema: Record<string, unknown>,
     mode: ResponseFormatMode
   ): ChatMessage[] {
+    if (mode === "json_object") {
+      return [
+        {
+          role: "system",
+          content:
+            "Return only valid JSON. Do not include markdown code fences or extra commentary.",
+        },
+        { role: "user", content: prompt },
+      ];
+    }
     if (mode === "prompt_only") {
       return [
         {
@@ -235,6 +253,36 @@ export class OpenAiCompatModel extends Model {
       ];
     }
     return [{ role: "user", content: prompt }];
+  }
+
+  private prepareSchemaForMode(
+    jsonSchema: Record<string, unknown>,
+    mode: ResponseFormatMode
+  ): SchemaPreparation {
+    if (mode !== "json_schema" || this.provider !== "openai") {
+      return { requestSchema: jsonSchema, unwrapDataProperty: false };
+    }
+    if (jsonSchema.type === "array") {
+      return {
+        requestSchema: {
+          type: "object",
+          properties: {
+            data: jsonSchema,
+          },
+          required: ["data"],
+          additionalProperties: false,
+        },
+        unwrapDataProperty: true,
+      };
+    }
+    return { requestSchema: jsonSchema, unwrapDataProperty: false };
+  }
+
+  private unwrapDataProperty(parsedResponse: unknown): unknown {
+    if (typeof parsedResponse === "object" && parsedResponse !== null && "data" in parsedResponse) {
+      return (parsedResponse as { data: unknown }).data;
+    }
+    return parsedResponse;
   }
 
   private parseJsonFromResponse(raw: string): unknown {
