@@ -4,33 +4,33 @@ import { VertexModel } from "../src/models/vertex_model";
 import { OllamaModel } from "../src/models/ollama_model";
 import { OpenAiCompatModel } from "../src/models/openai_compat_model";
 
-export type SensemakerBackend = "vertex" | "ollama" | "openai-compatible";
-export type OpenAiCompatProvider = "openai" | "together" | "mistral";
+export type SensemakerAdapter = "vertex" | "ollama" | "openai-compatible";
+export type OpenAiCompatProvider = "openai" | "openrouter" | "mistral";
 
 export const DEFAULT_VERTEX_MODEL = "gemini-2.5-pro";
 export const DEFAULT_VERTEX_LOCATION = "global";
 export const DEFAULT_OLLAMA_MODEL = "gemma3:latest";
 export const DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434";
 export const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
-export const DEFAULT_TOGETHER_BASE_URL = "https://api.together.xyz/v1";
+export const DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 export const DEFAULT_MISTRAL_BASE_URL = "https://api.mistral.ai/v1";
 export const VERTEX_CATEGORIZATION_BATCH_SIZE = 100;
 
 const OPENAI_COMPATIBLE_DEFAULTS: Record<OpenAiCompatProvider, string> = {
   openai: DEFAULT_OPENAI_BASE_URL,
-  together: DEFAULT_TOGETHER_BASE_URL,
+  openrouter: DEFAULT_OPENROUTER_BASE_URL,
   mistral: DEFAULT_MISTRAL_BASE_URL,
 };
 
 const OPENAI_COMPATIBLE_ENV_KEY: Record<OpenAiCompatProvider, string> = {
   openai: "OPENAI_API_KEY",
-  together: "TOGETHER_API_KEY",
+  openrouter: "OPENROUTER_API_KEY",
   mistral: "MISTRAL_API_KEY",
 };
 
 /** Raw commander opts after parse (before parseSensemakerModelOpts). */
 export type SensemakerModelCliRawOpts = {
-  backend?: string;
+  adapter?: string;
   provider?: string;
   baseUrl?: string;
   apiKey?: string;
@@ -42,7 +42,7 @@ export type SensemakerModelCliRawOpts = {
 };
 
 export interface SensemakerModelCliParsed {
-  backend: SensemakerBackend;
+  adapter: SensemakerAdapter;
   provider?: OpenAiCompatProvider;
   vertexProject?: string;
   vertexLocation: string;
@@ -57,17 +57,17 @@ export interface SensemakerModelCliParsed {
 export function addSensemakerModelOptions(program: Command): Command {
   return program
     .option(
-      "--backend <backend>",
-      "LLM backend: vertex (default), ollama, or openai-compatible.",
+      "--adapter <adapter>",
+      "LLM adapter: vertex (default), ollama, or openai-compatible.",
       "vertex"
     )
     .option(
       "--provider <provider>",
-      "Provider preset for --backend openai-compatible: openai, together, or mistral."
+      "Provider preset for --adapter openai-compatible: openai, openrouter, or mistral."
     )
     .option(
       "--baseUrl <url>",
-      "Base URL for the LLM HTTP API. Defaults depend on backend/provider."
+      "Base URL for the LLM HTTP API. Defaults depend on adapter/provider."
     )
     .option(
       "--apiKey <token>",
@@ -75,15 +75,15 @@ export function addSensemakerModelOptions(program: Command): Command {
     )
     .option(
       "-m, --modelName <model>",
-      `Model id for the selected backend (Vertex default: ${DEFAULT_VERTEX_MODEL}; Ollama default: ${DEFAULT_OLLAMA_MODEL}; required for openai-compatible).`
+      `Model id for the selected adapter (Vertex default: ${DEFAULT_VERTEX_MODEL}; Ollama default: ${DEFAULT_OLLAMA_MODEL}; required for openai-compatible).`
     )
     .option(
       "-v, --vertexProject <project>",
-      "Google Cloud project id (required when --backend is vertex)."
+      "Google Cloud project id (required when --adapter is vertex)."
     )
     .option(
       "--vertexLocation <location>",
-      `Vertex location/region to use for --backend vertex. Default: ${DEFAULT_VERTEX_LOCATION}.`,
+      `Vertex location/region to use for --adapter vertex. Default: ${DEFAULT_VERTEX_LOCATION}.`,
       DEFAULT_VERTEX_LOCATION
     )
     .option(
@@ -96,7 +96,7 @@ export function addSensemakerModelOptions(program: Command): Command {
     );
 }
 
-function normalizeBackend(value: unknown): SensemakerBackend {
+function normalizeAdapter(value: unknown): SensemakerAdapter {
   const s = String(value ?? "vertex").toLowerCase().trim();
   if (s === "vertex") {
     return "vertex";
@@ -108,7 +108,7 @@ function normalizeBackend(value: unknown): SensemakerBackend {
     return "openai-compatible";
   }
   throw new Error(
-    `Invalid --backend "${value}". Use "vertex", "ollama", or "openai-compatible".`
+    `Invalid --adapter "${value}". Use "vertex", "ollama", or "openai-compatible".`
   );
 }
 
@@ -117,11 +117,11 @@ function normalizeProvider(value: unknown): OpenAiCompatProvider | undefined {
     return undefined;
   }
   const s = String(value).toLowerCase().trim();
-  if (s === "openai" || s === "together" || s === "mistral") {
+  if (s === "openai" || s === "openrouter" || s === "mistral") {
     return s;
   }
   throw new Error(
-    `Invalid --provider "${value}". Use "openai", "together", or "mistral".`
+    `Invalid --provider "${value}". Use "openai", "openrouter", or "mistral".`
   );
 }
 
@@ -133,7 +133,7 @@ export function parseSensemakerModelOpts(
   raw: SensemakerModelCliRawOpts,
   program: Command
 ): SensemakerModelCliParsed {
-  const backend = normalizeBackend(raw.backend);
+  const adapter = normalizeAdapter(raw.adapter);
   const provider = normalizeProvider(raw.provider);
   let categorizationBatchSize: number | undefined;
   if (
@@ -150,10 +150,10 @@ export function parseSensemakerModelOpts(
   const categorizationBatchSizeCliProvided =
     program.getOptionValueSource("categorizationBatchSize") === "cli";
 
-  const baseUrl = getBaseUrl(backend, provider, raw.baseUrl);
+  const baseUrl = getBaseUrl(adapter, provider, raw.baseUrl);
 
   return {
-    backend,
+    adapter,
     provider,
     vertexProject: raw.vertexProject?.trim() || undefined,
     vertexLocation: raw.vertexLocation?.trim() || DEFAULT_VERTEX_LOCATION,
@@ -167,17 +167,17 @@ export function parseSensemakerModelOpts(
 }
 
 function getBaseUrl(
-  backend: SensemakerBackend,
+  adapter: SensemakerAdapter,
   provider: OpenAiCompatProvider | undefined,
   explicit?: string
 ): string {
   if (explicit && String(explicit).trim().length > 0) {
     return normalizeBaseUrl(String(explicit).trim());
   }
-  if (backend === "ollama") {
+  if (adapter === "ollama") {
     return DEFAULT_OLLAMA_BASE_URL;
   }
-  if (backend === "openai-compatible" && provider) {
+  if (adapter === "openai-compatible" && provider) {
     return OPENAI_COMPATIBLE_DEFAULTS[provider];
   }
   return DEFAULT_OLLAMA_BASE_URL;
@@ -187,22 +187,22 @@ export function resolveApiKey(opts: SensemakerModelCliParsed): string | undefine
   if (opts.apiKey) {
     return opts.apiKey;
   }
-  if (opts.backend !== "openai-compatible" || !opts.provider) {
+  if (opts.adapter !== "openai-compatible" || !opts.provider) {
     return undefined;
   }
   return process.env[OPENAI_COMPATIBLE_ENV_KEY[opts.provider]];
 }
 
 export function validateSensemakerModelOpts(opts: SensemakerModelCliParsed): void {
-  if (opts.backend === "vertex") {
+  if (opts.adapter === "vertex") {
     if (!opts.vertexProject) {
       throw new Error(
-        "--vertexProject is required when --backend is vertex. " +
-          "For Ollama, use --backend ollama."
+        "--vertexProject is required when --adapter is vertex. " +
+          "For Ollama, use --adapter ollama."
       );
     }
   }
-  if (opts.backend === "ollama" || opts.backend === "openai-compatible") {
+  if (opts.adapter === "ollama" || opts.adapter === "openai-compatible") {
     try {
       new URL(opts.baseUrl);
     } catch {
@@ -211,15 +211,15 @@ export function validateSensemakerModelOpts(opts: SensemakerModelCliParsed): voi
       );
     }
   }
-  if (opts.backend === "openai-compatible") {
+  if (opts.adapter === "openai-compatible") {
     if (!opts.provider) {
       throw new Error(
-        '--provider is required when --backend is openai-compatible. Use "openai", "together", or "mistral".'
+        '--provider is required when --adapter is openai-compatible. Use "openai", "openrouter", or "mistral".'
       );
     }
     if (!opts.modelName) {
       throw new Error(
-        "--modelName is required when --backend is openai-compatible."
+        "--modelName is required when --adapter is openai-compatible."
       );
     }
     if (!resolveApiKey(opts)) {
@@ -235,7 +235,7 @@ export function warnCategorizationBatchSizeForVertex(
   opts: SensemakerModelCliParsed
 ): void {
   if (
-    opts.backend === "vertex" &&
+    opts.adapter === "vertex" &&
     opts.categorizationBatchSizeCliProvided
   ) {
     console.warn(
@@ -245,7 +245,7 @@ export function warnCategorizationBatchSizeForVertex(
 }
 
 export function createModelFromCliOptions(opts: SensemakerModelCliParsed): Model {
-  if (opts.backend === "vertex") {
+  if (opts.adapter === "vertex") {
     const modelName = opts.modelName ?? DEFAULT_VERTEX_MODEL;
     return new VertexModel(
       opts.vertexProject!,
@@ -259,7 +259,7 @@ export function createModelFromCliOptions(opts: SensemakerModelCliParsed): Model
     opts.categorizationBatchSize !== undefined
       ? opts.categorizationBatchSize
       : 5;
-  if (opts.backend === "ollama") {
+  if (opts.adapter === "ollama") {
     return new OllamaModel(opts.baseUrl, modelName, batch);
   }
   return new OpenAiCompatModel({

@@ -5,7 +5,7 @@ import { checkDataSchema } from "../types";
 import { retryCall } from "../sensemaker_utils";
 import { DEFAULT_PARALLELISM, RETRY_DELAY_MS } from "./model_util";
 
-type OpenAiCompatProvider = "openai" | "together" | "mistral";
+type OpenAiCompatProvider = "openai" | "openrouter" | "mistral";
 
 type ChatMessage = {
   role: "system" | "user" | "assistant";

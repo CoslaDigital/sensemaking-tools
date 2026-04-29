@@ -8,7 +8,7 @@ import {
   DEFAULT_MISTRAL_BASE_URL,
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OPENAI_BASE_URL,
-  DEFAULT_TOGETHER_BASE_URL,
+  DEFAULT_OPENROUTER_BASE_URL,
   DEFAULT_VERTEX_LOCATION,
   normalizeBaseUrl,
   parseSensemakerModelOpts,
@@ -33,7 +33,7 @@ describe("sensemaker_model_cli", () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     delete process.env.OPENAI_API_KEY;
-    delete process.env.TOGETHER_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
     delete process.env.MISTRAL_API_KEY;
   });
 
@@ -53,8 +53,8 @@ describe("sensemaker_model_cli", () => {
   });
 
   describe("parseSensemakerModelOpts + validateSensemakerModelOpts", () => {
-    it("requires vertexProject when backend is vertex", () => {
-      const { program, raw } = parseWithArgv(["--backend", "vertex"]);
+    it("requires vertexProject when adapter is vertex", () => {
+      const { program, raw } = parseWithArgv(["--adapter", "vertex"]);
       const parsed = parseSensemakerModelOpts(raw, program);
       expect(() => validateSensemakerModelOpts(parsed)).toThrow(
         /--vertexProject is required/
@@ -63,20 +63,20 @@ describe("sensemaker_model_cli", () => {
 
     it("accepts vertex with project", () => {
       const { program, raw } = parseWithArgv([
-        "--backend",
+        "--adapter",
         "vertex",
         "--vertexProject",
         "my-project",
       ]);
       const parsed = parseSensemakerModelOpts(raw, program);
       expect(() => validateSensemakerModelOpts(parsed)).not.toThrow();
-      expect(parsed.backend).toBe("vertex");
+      expect(parsed.adapter).toBe("vertex");
       expect(parsed.vertexProject).toBe("my-project");
     });
 
     it("defaults vertexLocation to global", () => {
       const { program, raw } = parseWithArgv([
-        "--backend",
+        "--adapter",
         "vertex",
         "--vertexProject",
         "my-project",
@@ -87,7 +87,7 @@ describe("sensemaker_model_cli", () => {
 
     it("parses --vertexLocation override", () => {
       const { program, raw } = parseWithArgv([
-        "--backend",
+        "--adapter",
         "vertex",
         "--vertexProject",
         "my-project",
@@ -99,17 +99,17 @@ describe("sensemaker_model_cli", () => {
     });
 
     it("accepts ollama without vertexProject", () => {
-      const { program, raw } = parseWithArgv(["--backend", "ollama"]);
+      const { program, raw } = parseWithArgv(["--adapter", "ollama"]);
       const parsed = parseSensemakerModelOpts(raw, program);
       expect(() => validateSensemakerModelOpts(parsed)).not.toThrow();
-      expect(parsed.backend).toBe("ollama");
+      expect(parsed.adapter).toBe("ollama");
       expect(parsed.baseUrl).toBe(DEFAULT_OLLAMA_BASE_URL);
     });
 
-    it("sets provider default base URL for openai-compatible backends", () => {
+    it("sets provider default base URL for openai-compatible adapters", () => {
       const openAi = parseSensemakerModelOpts(
         parseWithArgv([
-          "--backend",
+          "--adapter",
           "openai-compatible",
           "--provider",
           "openai",
@@ -119,7 +119,7 @@ describe("sensemaker_model_cli", () => {
           "x",
         ]).raw,
         parseWithArgv([
-          "--backend",
+          "--adapter",
           "openai-compatible",
           "--provider",
           "openai",
@@ -131,33 +131,33 @@ describe("sensemaker_model_cli", () => {
       );
       expect(openAi.baseUrl).toBe(DEFAULT_OPENAI_BASE_URL);
 
-      const together = parseSensemakerModelOpts(
+      const openrouter = parseSensemakerModelOpts(
         parseWithArgv([
-          "--backend",
+          "--adapter",
           "openai-compatible",
           "--provider",
-          "together",
+          "openrouter",
           "--modelName",
-          "openai/gpt-oss-20b",
+          "openai/gpt-5.2",
           "--apiKey",
           "x",
         ]).raw,
         parseWithArgv([
-          "--backend",
+          "--adapter",
           "openai-compatible",
           "--provider",
-          "together",
+          "openrouter",
           "--modelName",
-          "openai/gpt-oss-20b",
+          "openai/gpt-5.2",
           "--apiKey",
           "x",
         ]).program
       );
-      expect(together.baseUrl).toBe(DEFAULT_TOGETHER_BASE_URL);
+      expect(openrouter.baseUrl).toBe(DEFAULT_OPENROUTER_BASE_URL);
 
       const mistral = parseSensemakerModelOpts(
         parseWithArgv([
-          "--backend",
+          "--adapter",
           "openai-compatible",
           "--provider",
           "mistral",
@@ -167,7 +167,7 @@ describe("sensemaker_model_cli", () => {
           "x",
         ]).raw,
         parseWithArgv([
-          "--backend",
+          "--adapter",
           "openai-compatible",
           "--provider",
           "mistral",
@@ -180,9 +180,9 @@ describe("sensemaker_model_cli", () => {
       expect(mistral.baseUrl).toBe(DEFAULT_MISTRAL_BASE_URL);
     });
 
-    it("requires provider for openai-compatible backend", () => {
+    it("requires provider for openai-compatible adapter", () => {
       const { program, raw } = parseWithArgv([
-        "--backend",
+        "--adapter",
         "openai-compatible",
         "--modelName",
         "gpt-4o-mini",
@@ -195,9 +195,9 @@ describe("sensemaker_model_cli", () => {
       );
     });
 
-    it("requires modelName for openai-compatible backend", () => {
+    it("requires modelName for openai-compatible adapter", () => {
       const { program, raw } = parseWithArgv([
-        "--backend",
+        "--adapter",
         "openai-compatible",
         "--provider",
         "openai",
@@ -210,9 +210,9 @@ describe("sensemaker_model_cli", () => {
       );
     });
 
-    it("requires API key for openai-compatible backend", () => {
+    it("requires API key for openai-compatible adapter", () => {
       const { program, raw } = parseWithArgv([
-        "--backend",
+        "--adapter",
         "openai-compatible",
         "--provider",
         "openai",
@@ -228,7 +228,7 @@ describe("sensemaker_model_cli", () => {
     it("resolves API key from environment when CLI key is omitted", () => {
       process.env.OPENAI_API_KEY = "env-key";
       const { program, raw } = parseWithArgv([
-        "--backend",
+        "--adapter",
         "openai-compatible",
         "--provider",
         "openai",
@@ -240,10 +240,25 @@ describe("sensemaker_model_cli", () => {
       expect(() => validateSensemakerModelOpts(parsed)).not.toThrow();
     });
 
+    it("resolves OpenRouter API key from environment when CLI key is omitted", () => {
+      process.env.OPENROUTER_API_KEY = "openrouter-env-key";
+      const { program, raw } = parseWithArgv([
+        "--adapter",
+        "openai-compatible",
+        "--provider",
+        "openrouter",
+        "--modelName",
+        "openai/gpt-5.2",
+      ]);
+      const parsed = parseSensemakerModelOpts(raw, program);
+      expect(resolveApiKey(parsed)).toBe("openrouter-env-key");
+      expect(() => validateSensemakerModelOpts(parsed)).not.toThrow();
+    });
+
     it("prefers --apiKey over environment key", () => {
       process.env.OPENAI_API_KEY = "env-key";
       const { program, raw } = parseWithArgv([
-        "--backend",
+        "--adapter",
         "openai-compatible",
         "--provider",
         "openai",
@@ -256,16 +271,16 @@ describe("sensemaker_model_cli", () => {
       expect(resolveApiKey(parsed)).toBe("cli-key");
     });
 
-    it("rejects invalid backend", () => {
-      const { program, raw } = parseWithArgv(["--backend", "something"]);
+    it("rejects invalid adapter", () => {
+      const { program, raw } = parseWithArgv(["--adapter", "something"]);
       expect(() => parseSensemakerModelOpts(raw, program)).toThrow(
-        /Invalid --backend/
+        /Invalid --adapter/
       );
     });
 
     it("parses categorizationBatchSize and detects CLI source", () => {
       const { program, raw } = parseWithArgv([
-        "--backend",
+        "--adapter",
         "ollama",
         "--categorizationBatchSize",
         "8",
@@ -284,7 +299,7 @@ describe("sensemaker_model_cli", () => {
   });
 
   describe("createModelFromCliOptions", () => {
-    it("returns VertexModel for vertex backend", () => {
+    it("returns VertexModel for vertex adapter", () => {
       const { program, raw } = parseWithArgv([
         "--vertexProject",
         "proj-1",
@@ -297,8 +312,8 @@ describe("sensemaker_model_cli", () => {
       expect(model).toBeInstanceOf(VertexModel);
     });
 
-    it("returns OllamaModel for ollama backend with batch default", () => {
-      const { program, raw } = parseWithArgv(["--backend", "ollama"]);
+    it("returns OllamaModel for ollama adapter with batch default", () => {
+      const { program, raw } = parseWithArgv(["--adapter", "ollama"]);
       const parsed = parseSensemakerModelOpts(raw, program);
       validateSensemakerModelOpts(parsed);
       const model = createModelFromCliOptions(parsed);
@@ -306,9 +321,9 @@ describe("sensemaker_model_cli", () => {
       expect(model.categorizationBatchSize).toBe(5);
     });
 
-    it("returns OpenAiCompatModel for openai-compatible backend", () => {
+    it("returns OpenAiCompatModel for openai-compatible adapter", () => {
       const { program, raw } = parseWithArgv([
-        "--backend",
+        "--adapter",
         "openai-compatible",
         "--provider",
         "openai",
@@ -328,7 +343,7 @@ describe("sensemaker_model_cli", () => {
     it("warns when vertex and batch flag was passed on CLI", () => {
       const warnSpy = jest.spyOn(console, "warn").mockImplementation();
       const { program, raw } = parseWithArgv([
-        "--backend",
+        "--adapter",
         "vertex",
         "--vertexProject",
         "p",

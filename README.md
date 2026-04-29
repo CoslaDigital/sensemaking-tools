@@ -180,7 +180,7 @@ console.log(summary.getText("MARKDOWN"));
 ## CLI Usage
 There is also a simple CLI set up for testing. There are four tools:
 
-* [./library/runner-cli/health_check_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/health_check_runner.ts): health check for your chosen LLM backend. With Vertex (default), it verifies Google Cloud authentication, Vertex AI connectivity, and model output. With Ollama, it calls `GET /api/tags`, confirms the requested model is available, and runs a short generate probe. Writes results to the file given by `--outputFile`.
+* [./library/runner-cli/health_check_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/health_check_runner.ts): health check for your chosen LLM adapter. With Vertex (default), it verifies Google Cloud authentication, Vertex AI connectivity, and model output. With Ollama, it calls `GET /api/tags`, confirms the requested model is available, and runs a short generate probe. Writes results to the file given by `--outputFile`.
 * [./library/runner-cli/runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/runner.ts): takes in a CSV representing a conversation and outputs an HTML file containing the summary. The summary is best viewed as an HTML file so that the included citations can be hovered over to see the original comment and votes.  
 * [./library/runner-cli/categorization\_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/categorization_runner.ts): takes in a CSV representing a conversation and outputs another CSV with the comments categorized into topics and subtopics.  
 * [./library/runner-cli/advanced\_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/advanced_runner.ts): takes in a CSV representing a conversation and outputs three files for an advanced user more interested in the statistics. The first is a JSON of topics, their sizes, and their subtopics. The second is a JSON with all of the comments and their alignment scores and values. Third is the summary object as a JSON which can be used for additional processing.
@@ -191,26 +191,26 @@ The health check, categorization, runner, and advanced CLIs share the same LLM-r
 
 ### Shared LLM flags
 
-* `--backend <vertex|ollama|openai-compatible>`: Which API backend to use. Default: `vertex`.
-* `--provider <openai|together|mistral>`: Required when `--backend` is `openai-compatible`.
-* `--vertexProject <project>`: Google Cloud project id. Required when `--backend` is `vertex`.
-* `--vertexLocation <location>`: Vertex location/region when `--backend` is `vertex`. Default: `global`.
-* `--baseUrl <url>`: Root URL of the provider API. Defaults by backend/provider:
+* `--adapter <vertex|ollama|openai-compatible>`: Which API adapter to use. Default: `vertex`.
+* `--provider <openai|openrouter|mistral>`: Required when `--adapter` is `openai-compatible`.
+* `--vertexProject <project>`: Google Cloud project id. Required when `--adapter` is `vertex`.
+* `--vertexLocation <location>`: Vertex location/region when `--adapter` is `vertex`. Default: `global`.
+* `--baseUrl <url>`: Root URL of the provider API. Defaults by adapter/provider:
   * Ollama: `http://localhost:11434`
   * OpenAI: `https://api.openai.com/v1`
-  * Together: `https://api.together.xyz/v1`
+  * OpenRouter: `https://openrouter.ai/api/v1`
   * Mistral: `https://api.mistral.ai/v1`
-* `-m, --modelName <model>`: Model id for the backend. Vertex default: `gemini-2.5-pro-preview-06-05`. Ollama default: `gemma3:latest`. Required for `openai-compatible`.
+* `-m, --modelName <model>`: Model id for the adapter. Vertex default: `gemini-2.5-pro-preview-06-05`. Ollama default: `gemma3:latest`. Required for `openai-compatible`.
 * `--apiKey <token>`: API key for `openai-compatible`. Optional if provider env var is set:
   * OpenAI: `OPENAI_API_KEY`
-  * Together: `TOGETHER_API_KEY`
+  * OpenRouter: `OPENROUTER_API_KEY`
   * Mistral: `MISTRAL_API_KEY`
 * `-k, --keyFilename <path>`: Service account JSON key for Vertex (optional if you use Application Default Credentials).
-* `--categorizationBatchSize <n>`: Number of statements per categorization batch. Only used when `--backend` is `ollama` (Vertex always uses batch size `100`; if you pass this flag with Vertex, it is ignored and a warning is printed).
+* `--categorizationBatchSize <n>`: Number of statements per categorization batch. Only used when `--adapter` is `ollama` (Vertex always uses batch size `100`; if you pass this flag with Vertex, it is ignored and a warning is printed).
 
 ### Concurrency environment variables
 
-The model backends also support environment-variable-based request parallelism controls to avoid rate limiting e.g. Tokens Per Minute (TPM) policies:
+The model adapters also support environment-variable-based request parallelism controls to avoid rate limiting e.g. Tokens Per Minute (TPM) policies:
 
 * `DEFAULT_PARALLELISM`: Shared default parallelism for `openai-compatible` and `ollama` model calls.
 * `DEFAULT_VERTEX_PARALLELISM`: Vertex-specific override for request parallelism.
@@ -227,7 +227,7 @@ The model backends also support environment-variable-based request parallelism c
 Examples:
 
 ```bash
-# Health check — Vertex (default backend)
+# Health check — Vertex (default adapter)
 npx ts-node ./library/runner-cli/health_check_runner.ts \
   --vertexProject <project-name> \
   --outputFile health-check.txt \
@@ -243,28 +243,28 @@ npx ts-node ./library/runner-cli/health_check_runner.ts \
 
 # Health check — Ollama (ensure Ollama is running and the model is pulled)
 npx ts-node ./library/runner-cli/health_check_runner.ts \
-  --backend ollama \
+  --adapter ollama \
   --baseUrl http://localhost:11434 \
   --modelName gemma3:latest \
   --outputFile health-check-ollama.txt
 
 # Health check — OpenAI-compatible (OpenAI)
 npx ts-node ./library/runner-cli/health_check_runner.ts \
-  --backend openai-compatible \
+  --adapter openai-compatible \
   --provider openai \
   --modelName gpt-4o-mini \
   --outputFile health-check-openai.txt
 
-# Health check — OpenAI-compatible (Together)
+# Health check — OpenAI-compatible (OpenRouter)
 npx ts-node ./library/runner-cli/health_check_runner.ts \
-  --backend openai-compatible \
-  --provider together \
-  --modelName openai/gpt-oss-20b \
-  --outputFile health-check-together.txt
+  --adapter openai-compatible \
+  --provider openrouter \
+  --modelName openai/gpt-5.2 \
+  --outputFile health-check-openrouter.txt
 
 # Health check — OpenAI-compatible (Mistral)
 npx ts-node ./library/runner-cli/health_check_runner.ts \
-  --backend openai-compatible \
+  --adapter openai-compatible \
   --provider mistral \
   --modelName mistral-small-latest \
   --outputFile health-check-mistral.txt
@@ -279,7 +279,7 @@ npx ts-node ./library/runner-cli/categorization_runner.ts \
 
 # Categorization — Ollama
 npx ts-node ./library/runner-cli/categorization_runner.ts \
-  --backend ollama \
+  --adapter ollama \
   --baseUrl http://localhost:11434 \
   --modelName gemma3:latest \
   --categorizationBatchSize 5 \
@@ -289,17 +289,17 @@ npx ts-node ./library/runner-cli/categorization_runner.ts \
 
 # Summary runner — Ollama (same shared flags)
 npx ts-node ./library/runner-cli/runner.ts \
-  --backend ollama \
+  --adapter ollama \
   --inputFile <input.csv> \
   --outputBasename ./out/run
 
-# Summary runner — Together (openai-compatible)
+# Summary runner — OpenRouter (openai-compatible)
 npx ts-node ./library/runner-cli/runner.ts \
-  --backend openai-compatible \
-  --provider together \
-  --modelName openai/gpt-oss-20b \
+  --adapter openai-compatible \
+  --provider openrouter \
+  --modelName openai/gpt-5.2 \
   --inputFile <input.csv> \
-  --outputBasename ./out/run-together
+  --outputBasename ./out/run-openrouter
 ```
 
 ## **Generating a Report \- Get a webpage presentation of the report**

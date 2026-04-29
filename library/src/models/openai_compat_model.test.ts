@@ -84,8 +84,8 @@ describe("OpenAiCompatModel", () => {
     global.fetch = fetchMock as unknown as typeof fetch;
 
     const model = new OpenAiCompatModel({
-      provider: "together",
-      baseUrl: "https://api.together.xyz/v1",
+      provider: "openrouter",
+      baseUrl: "https://openrouter.ai/api/v1",
       modelName: "openai/gpt-oss-20b",
       apiKey: "k",
     });

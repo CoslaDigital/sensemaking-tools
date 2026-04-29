@@ -1,4 +1,4 @@
-// Comprehensive health check that verifies backend connectivity and model functionality.
+// Comprehensive health check that verifies adapter connectivity and model functionality.
 // Supports Vertex, Ollama, and OpenAI-compatible providers.
 //
 // Sample Usage (Vertex):
@@ -8,12 +8,12 @@
 //
 // Sample Usage (Ollama):
 //  npx ts-node ./library/runner-cli/health_check_runner.ts \
-//    --backend ollama \
+//    --adapter ollama \
 //    --outputFile "health-check"
 //
 // Sample Usage (OpenAI-compatible):
 //  npx ts-node ./library/runner-cli/health_check_runner.ts \
-//    --backend openai-compatible \
+//    --adapter openai-compatible \
 //    --provider openai \
 //    --modelName gpt-4o-mini \
 //    --outputFile "health-check"
@@ -26,6 +26,7 @@ import { OpenAiCompatModel } from "../src/models/openai_compat_model";
 import {
   addSensemakerModelOptions,
   DEFAULT_OLLAMA_MODEL,
+  OpenAiCompatProvider,
   DEFAULT_VERTEX_MODEL,
   normalizeBaseUrl,
   parseSensemakerModelOpts,
@@ -152,7 +153,7 @@ async function testOllamaAccess(
 }
 
 async function testOpenAiCompatAccess(
-  provider: "openai" | "together" | "mistral",
+  provider: OpenAiCompatProvider,
   baseUrl: string,
   modelName: string,
   apiKey: string
@@ -223,9 +224,9 @@ async function main(): Promise<void> {
 
   const modelName =
     modelOpts.modelName ??
-    (modelOpts.backend === "ollama" ? DEFAULT_OLLAMA_MODEL : DEFAULT_VERTEX_MODEL);
+    (modelOpts.adapter === "ollama" ? DEFAULT_OLLAMA_MODEL : DEFAULT_VERTEX_MODEL);
 
-  if (modelOpts.backend === "vertex") {
+  if (modelOpts.adapter === "vertex") {
     console.log("Starting health check for Vertex AI...");
     console.log(`Project: ${modelOpts.vertexProject}`);
     console.log(`Location: ${modelOpts.vertexLocation}`);
@@ -266,7 +267,7 @@ This output confirms that the model is accessible and can generate text response
     process.exit(1);
   }
 
-  if (modelOpts.backend === "ollama") {
+  if (modelOpts.adapter === "ollama") {
     console.log("Starting health check for Ollama...");
     console.log(`Base URL: ${modelOpts.baseUrl}`);
     console.log(`Model: ${modelName}`);
