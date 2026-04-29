@@ -14,7 +14,16 @@ The tools demonstrated here illustrate methods for:
 
 These methods were applied in a [Jigsaw case study in Bowling Green, Kentucky](https://medium.com/jigsaw/how-one-of-the-fastest-growing-cities-in-kentucky-used-ai-to-plan-for-the-next-25-years-3b70c4fd1412), analyzing a major U.S. digital civic conversation.
 
-Please see these [docs](https://jigsaw-code.github.io/sensemaking-tools/docs/) for a full breakdown of available methods and types. 
+Please see these [docs](https://jigsaw-code.github.io/sensemaking-tools/docs/) for a full breakdown of available methods and types.
+
+## In This Repo
+
+- `library/`: Core TypeScript package, models, and runner CLIs (`@cosla/sensemaking-tools`).
+- `web-ui/`: Angular app for rendering interactive Sensemaker report outputs.
+- `visualization-library/`: Shared visualization components used by report presentation flows.
+- `models/`: Additional model/runtime assets and supporting resources.
+- `qualtrics/`: Qualtrics-related integration scripts and survey tooling artifacts.
+- `assets/`: Static images and media used by docs and examples.
 
 # Our Approach
 
@@ -178,129 +187,19 @@ console.log(summary.getText("MARKDOWN"));
 ```
 
 ## CLI Usage
-There is also a simple CLI set up for testing. There are four tools:
+For package usage, detailed CLI flags, provider configuration, and troubleshooting, use the canonical guide:
 
-* [./library/runner-cli/health_check_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/health_check_runner.ts): health check for your chosen LLM adapter. With Vertex (default), it verifies Google Cloud authentication, Vertex AI connectivity, and model output. With Ollama, it calls `GET /api/tags`, confirms the requested model is available, and runs a short generate probe. Writes results to the file given by `--outputFile`.
-* [./library/runner-cli/runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/runner.ts): takes in a CSV representing a conversation and outputs an HTML file containing the summary. The summary is best viewed as an HTML file so that the included citations can be hovered over to see the original comment and votes.  
-* [./library/runner-cli/categorization\_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/categorization_runner.ts): takes in a CSV representing a conversation and outputs another CSV with the comments categorized into topics and subtopics.  
-* [./library/runner-cli/advanced\_runner.ts](https://github.com/Jigsaw-Code/sensemaking-tools/blob/main/library/runner-cli/advanced_runner.ts): takes in a CSV representing a conversation and outputs three files for an advanced user more interested in the statistics. The first is a JSON of topics, their sizes, and their subtopics. The second is a JSON with all of the comments and their alignment scores and values. Third is the summary object as a JSON which can be used for additional processing.
+- [`library/README.md`](./library/README.md)
 
-These tools process CSV input files.  These must contain the columns `comment_text` and `comment-id`.  For deliberations without group information, vote counts should be set in columns titled `agrees`, `disagrees` and `passes`.  If you do not have vote information, these can be set to 0. For deliberations with group breakdowns, you can set the columns `{group_name}-agree-count`, `{group_name}-disagree-count`, `{group_name}-pass-count`.
+Quick navigation:
 
-The health check, categorization, runner, and advanced CLIs share the same LLM-related options (see `library/runner-cli/sensemaker_model_cli.ts`). Run them with `npx ts-node` from the repo root using paths like `./library/runner-cli/...`, or `cd library` and use `./runner-cli/...`.
-
-### Shared LLM flags
-
-* `--adapter <vertex|ollama|openai-compatible>`: Which API adapter to use. Default: `vertex`.
-* `--provider <openai|openrouter|mistral>`: Required when `--adapter` is `openai-compatible`.
-* `--vertexProject <project>`: Google Cloud project id. Required when `--adapter` is `vertex`.
-* `--vertexLocation <location>`: Vertex location/region when `--adapter` is `vertex`. Default: `global`.
-* `--baseUrl <url>`: Root URL of the provider API. Defaults by adapter/provider:
-  * Ollama: `http://localhost:11434`
-  * OpenAI: `https://api.openai.com/v1`
-  * OpenRouter: `https://openrouter.ai/api/v1`
-  * Mistral: `https://api.mistral.ai/v1`
-* `-m, --modelName <model>`: Model id for the adapter. Vertex default: `gemini-2.5-pro-preview-06-05`. Ollama default: `gemma3:latest`. Required for `openai-compatible`.
-* `--apiKey <token>`: API key for `openai-compatible`. Optional if provider env var is set:
-  * OpenAI: `OPENAI_API_KEY`
-  * OpenRouter: `OPENROUTER_API_KEY`
-  * Mistral: `MISTRAL_API_KEY`
-* `-k, --keyFilename <path>`: Service account JSON key for Vertex (optional if you use Application Default Credentials).
-* `--categorizationBatchSize <n>`: Number of statements per categorization batch. Only used when `--adapter` is `ollama` (Vertex always uses batch size `100`; if you pass this flag with Vertex, it is ignored and a warning is printed).
-
-### Concurrency environment variables
-
-The model adapters also support environment-variable-based request parallelism controls to avoid rate limiting e.g. Tokens Per Minute (TPM) policies:
-
-* `DEFAULT_PARALLELISM`: Shared default parallelism for `openai-compatible` and `ollama` model calls.
-* `DEFAULT_VERTEX_PARALLELISM`: Vertex-specific override for request parallelism.
-  * Precedence for Vertex is: `DEFAULT_VERTEX_PARALLELISM` -> `DEFAULT_PARALLELISM` -> `2`.
-  * This keeps Vertex's default parallelism at `2` when neither variable is set.
-
-### Tool-specific flags
-
-* **health_check_runner:** `--outputFile` (required): path to the report file.
-* **categorization_runner:** `--inputFile`, `--outputFile`; optional `--topics`, `--topicDepth` (1–3), `--additionalContext`, `--forceRerun`.
-* **runner:** `--inputFile`, `--outputBasename` (prefix for `summary.md` / `.html` / `.json` / etc.); optional `--additionalContext`.
-* **advanced_runner:** `--inputFile`, `--outputBasename`; optional `--additionalContext`. Expects comments to already include topics (run categorization first).
-
-Examples:
-
-```bash
-# Health check — Vertex (default adapter)
-npx ts-node ./library/runner-cli/health_check_runner.ts \
-  --vertexProject <project-name> \
-  --outputFile health-check.txt \
-  --keyFilename <key-file-name> \
-  --modelName <vertex-model-name>
-
-# Health check — Vertex with explicit location override
-npx ts-node ./library/runner-cli/health_check_runner.ts \
-  --vertexProject <project-name> \
-  --vertexLocation us-central1 \
-  --outputFile health-check-us-central1.txt \
-  --modelName <vertex-model-name>
-
-# Health check — Ollama (ensure Ollama is running and the model is pulled)
-npx ts-node ./library/runner-cli/health_check_runner.ts \
-  --adapter ollama \
-  --baseUrl http://localhost:11434 \
-  --modelName gemma3:latest \
-  --outputFile health-check-ollama.txt
-
-# Health check — OpenAI-compatible (OpenAI)
-npx ts-node ./library/runner-cli/health_check_runner.ts \
-  --adapter openai-compatible \
-  --provider openai \
-  --modelName gpt-4o-mini \
-  --outputFile health-check-openai.txt
-
-# Health check — OpenAI-compatible (OpenRouter)
-npx ts-node ./library/runner-cli/health_check_runner.ts \
-  --adapter openai-compatible \
-  --provider openrouter \
-  --modelName openai/gpt-5.2 \
-  --outputFile health-check-openrouter.txt
-
-# Health check — OpenAI-compatible (Mistral)
-npx ts-node ./library/runner-cli/health_check_runner.ts \
-  --adapter openai-compatible \
-  --provider mistral \
-  --modelName mistral-small-latest \
-  --outputFile health-check-mistral.txt
-
-# Categorization — Vertex
-npx ts-node ./library/runner-cli/categorization_runner.ts \
-  --vertexProject <project-name> \
-  --inputFile <input.csv> \
-  --outputFile <output.csv> \
-  --additionalContext "Short description of the conversation" \
-  --modelName <vertex-model-name>
-
-# Categorization — Ollama
-npx ts-node ./library/runner-cli/categorization_runner.ts \
-  --adapter ollama \
-  --baseUrl http://localhost:11434 \
-  --modelName gemma3:latest \
-  --categorizationBatchSize 5 \
-  --inputFile <input.csv> \
-  --outputFile <output.csv> \
-  --additionalContext "Short description of the conversation"
-
-# Summary runner — Ollama (same shared flags)
-npx ts-node ./library/runner-cli/runner.ts \
-  --adapter ollama \
-  --inputFile <input.csv> \
-  --outputBasename ./out/run
-
-# Summary runner — OpenRouter (openai-compatible)
-npx ts-node ./library/runner-cli/runner.ts \
-  --adapter openai-compatible \
-  --provider openrouter \
-  --modelName openai/gpt-5.2 \
-  --inputFile <input.csv> \
-  --outputBasename ./out/run-openrouter
-```
+- Package docs and CLI reference: [`library/README.md`](./library/README.md)
+- API docs (TypeDoc): [https://jigsaw-code.github.io/sensemaking-tools/docs/](https://jigsaw-code.github.io/sensemaking-tools/docs/)
+- CLI entrypoints:
+  - [`library/runner-cli/health_check_runner.ts`](./library/runner-cli/health_check_runner.ts)
+  - [`library/runner-cli/categorization_runner.ts`](./library/runner-cli/categorization_runner.ts)
+  - [`library/runner-cli/runner.ts`](./library/runner-cli/runner.ts)
+  - [`library/runner-cli/advanced_runner.ts`](./library/runner-cli/advanced_runner.ts)
 
 ## **Generating a Report \- Get a webpage presentation of the report**
 
