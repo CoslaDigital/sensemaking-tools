@@ -343,17 +343,32 @@ function calculateVotes(votes, type = 'total') {
         return 0;
     }
 
-    return Object.values(votes).reduce((total, groupVotes) => {
+    const toNumber = (value) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
+    const hasFlatVoteShape = (
+        Object.prototype.hasOwnProperty.call(votes, "agreeCount") ||
+        Object.prototype.hasOwnProperty.call(votes, "disagreeCount") ||
+        Object.prototype.hasOwnProperty.call(votes, "passCount")
+    );
+
+    const voteGroups = hasFlatVoteShape
+        ? [votes]
+        : Object.values(votes).filter((groupVotes) => groupVotes && typeof groupVotes === "object");
+
+    return voteGroups.reduce((total, groupVotes) => {
+        const agreeCount = toNumber(groupVotes.agreeCount);
+        const disagreeCount = toNumber(groupVotes.disagreeCount);
+        const passCount = toNumber(groupVotes.passCount);
+
         switch (type) {
             case 'agree':
-                return total + groupVotes.agreeCount;
+                return total + agreeCount;
             case 'disagree':
-                return total + groupVotes.disagreeCount;
+                return total + disagreeCount;
             case 'pass':
-                return total + groupVotes.passCount;
+                return total + passCount;
             case 'total':
             default:
-                return total + groupVotes.agreeCount + groupVotes.disagreeCount + groupVotes.passCount;
+                return total + agreeCount + disagreeCount + passCount;
         }
     }, 0);
 }

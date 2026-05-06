@@ -19,11 +19,11 @@ import importedCommentData from  "../../../../data/comments.json";
 import importedReportMetadata from "../../../../data/metadata.json";
 
 import {
-  VoteGroup,
   Statement,
   Subtopic,
   Topic,
 } from "../../models/report.model";
+import { getVoteTotals } from "../../utils/vote-utils";
 
 type AlignmentType = "high-alignment" | "low-alignment" | "high-uncertainty";
 
@@ -48,11 +48,7 @@ importedCommentData.forEach((comment: Statement) => {
   });
 
   // add comment votes to running vote total
-  const voteGroups = Object.values(comment.votes || {});
-  const commentVotes: number = voteGroups.reduce((commentAcc: number, group: VoteGroup) => {
-    return commentAcc + group.agreeCount + group.disagreeCount + group.passCount;
-  }, 0);
-  totalVoteNumber += commentVotes;
+  totalVoteNumber += getVoteTotals(comment.votes).total;
 });
 
 const allSubtopicIds: string[] = [];

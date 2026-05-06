@@ -1,10 +1,16 @@
-# Sensemaker Visualization Components
+# Sensemaker Visualizations Components by CoslaDigital
 
 A collection of reusable visualization components for displaying Sensemaker data, built with D3.js and Web Components.
 
+This package is maintained by Cosla as a fork of Jigsaw's original sensemaking-tools visualization library.
+
+## Fork and Attribution
+
+`@cosla/sensemaker-visualizations` is a maintained fork of Jigsaw's [sensemaking-tools visualization-library](https://github.com/Jigsaw-Code/sensemaking-tools/tree/main/visualization-library).
+
 ### Installation
 ```bash
-npm install
+npm install @cosla/sensemaker-visualizations
 ```
 
 ### Development
@@ -22,6 +28,14 @@ To build the package for production:
 npm run build
 ```
 The compiled files will be output to the `dist/` directory.
+
+### Usage
+
+Import the package once to register the custom elements:
+
+```ts
+import "@cosla/sensemaker-visualizations";
+```
 
 ### Building Storybook Docs
 To build the static Storybook documentation site:
@@ -57,7 +71,7 @@ To publish a new version of the package to npm, follow these steps:
     ```
 4. Publish to npm:
     ```bash
-    npm publish
+    npm publish --access public
     ```
 
 > **Note:** The `npm version` command will automatically update the version in `package.json`. Always ensure your changes are committed before publishing.

@@ -7,7 +7,7 @@ import {
   ElementRef,
   AfterViewInit,
 } from '@angular/core';
-import '@conversationai/sensemaker-visualizations';
+import '@cosla/sensemaker-visualizations';
 
 @Component({
     selector: 'app-sensemaking-chart-wrapper',

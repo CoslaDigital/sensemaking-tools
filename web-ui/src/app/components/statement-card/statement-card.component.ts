@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit } from '@angular/core';
 import { CustomTooltipDirective } from "../../directives/custom-tooltip/custom-tooltip.directive";
 
-import { VoteGroup, Statement } from "../../models/report.model";
+import { Statement } from "../../models/report.model";
+import { getVoteTotals } from "../../utils/vote-utils";
 
 @Component({
     selector: 'app-statement-card',
@@ -35,13 +36,11 @@ export class StatementCardComponent implements OnInit {
     this.agreePercent = Math.round(this.data.agreeRate * 100);
     this.disagreePercent = Math.round(this.data.disagreeRate * 100);
     this.passPercent = Math.round(this.data.passRate * 100);
-    Object.values(this.data.votes).forEach((voterGroup: VoteGroup) => {
-      const { agreeCount, disagreeCount, passCount } = voterGroup;
-      this.agreeTotal += agreeCount;
-      this.disagreeTotal += disagreeCount;
-      this.passTotal += passCount;
-      this.voteTotal += agreeCount + disagreeCount + passCount;
-    });
+    const voteTotals = getVoteTotals(this.data.votes);
+    this.agreeTotal = voteTotals.agreeCount;
+    this.disagreeTotal = voteTotals.disagreeCount;
+    this.passTotal = voteTotals.passCount;
+    this.voteTotal = voteTotals.total;
     if(this.data.topics) {
       this.topics = this.data.topics.replaceAll(";", ", ").replaceAll(":", " > ");
     }

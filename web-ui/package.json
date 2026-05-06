@@ -1,6 +1,6 @@
 {
   "name": "@cosla/sensemaking-web-ui",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Provides interactive visualizations and report from sensemaking-tools output. Fork of Jigsaw's sensemaking-tools web-ui (https://github.com/Jigsaw-Code/sensemaking-tools).",
   "homepage": "https://github.com/CoslaDigital/sensemaking-tools#readme",
   "scripts": {
@@ -62,7 +62,7 @@
     "@angular/platform-server": "19.2.18",
     "@angular/router": "19.2.18",
     "@angular/ssr": "19.2.19",
-    "@conversationai/sensemaker-visualizations": "^1.0.46",
+    "@cosla/sensemaker-visualizations": "file:../visualization-library",
     "@sinclair/typebox": "^0.34.27",
     "esbuild": "^0.25.0",
     "express": "^4.18.2",
