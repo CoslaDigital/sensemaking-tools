@@ -62,7 +62,7 @@
     "@angular/platform-server": "19.2.18",
     "@angular/router": "19.2.18",
     "@angular/ssr": "19.2.19",
-    "@cosla/sensemaker-visualizations": "file:../visualization-library",
+    "@cosla/sensemaker-visualizations": "^1.0.47",
     "@sinclair/typebox": "^0.34.27",
     "esbuild": "^0.25.0",
     "express": "^4.18.2",
