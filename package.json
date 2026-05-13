@@ -1,6 +1,6 @@
 {
   "name": "participation-project",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "private": true,
@@ -49,5 +49,13 @@
   "dependencies": {
     "@sinclair/typebox": "^0.27.8",
     "ts-node": "^10.9.2"
+  },
+  "overrides": {
+    "copy-webpack-plugin": {
+      "serialize-javascript": "^7.0.5"
+    },
+    "pacote": {
+      "tar": "^7.5.15"
+    }
   }
 }
