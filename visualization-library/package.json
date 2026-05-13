@@ -1,6 +1,6 @@
 {
     "name": "@cosla/sensemaker-visualizations",
-    "version": "1.0.47",
+    "version": "1.0.48",
     "description": "Interactive visualization components for sensemaker data. Fork of Jigsaw's sensemaking-tools visualization-library (https://github.com/Jigsaw-Code/sensemaking-tools).",
     "type": "module",
     "main": "dist/sensemaker-chart.cjs.js",
