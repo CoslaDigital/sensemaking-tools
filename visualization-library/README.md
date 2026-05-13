@@ -44,38 +44,6 @@ npm run build-storybook
 ```
 The static site will be output to the `storybook-static/` directory. You can deploy this directory to any static site host.
 
-### Publishing to npm
-
-To publish a new version of the package to npm, follow these steps:
-
-1. Make sure you are logged in to npm:
-    ```bash
-    npm login
-    ```
-2. Update the version number using one of the following commands (this will automatically update `package.json` and create a Git commit and tag):
-    - For a **patch** update (bug fixes, backwards compatible):
-      ```bash
-      npm version patch
-      ```
-    - For a **minor** update (new features, backwards compatible):
-      ```bash
-      npm version minor
-      ```
-    - For a **major** update (breaking changes):
-      ```bash
-      npm version major
-      ```
-3. Build the package:
-    ```bash
-    npm run build
-    ```
-4. Publish to npm:
-    ```bash
-    npm publish --access public
-    ```
-
-> **Note:** The `npm version` command will automatically update the version in `package.json`. Always ensure your changes are committed before publishing.
-
 ## Data Source and License
 
 The data used in this demo was gathered using the [Polis software](https://compdemocracy.org/Polis/) and is sub-licensed under CC BY 4.0 with Attribution to The Computational Democracy Project. The data and more information about how the data was collected can be found at the following link:
