@@ -20,7 +20,7 @@ import os
 import random
 import time
 import tqdm.asyncio
-from typing import Any, Callable, Tuple, TypedDict
+from typing import Any, Callable, Tuple
 from google import genai
 from google.api_core import exceptions as google_api_core_exceptions
 from google.api_core import exceptions as google_exceptions
@@ -28,6 +28,17 @@ from google.genai import errors as google_genai_errors
 from google.genai import types as genai_types
 from google.protobuf import duration_pb2, json_format
 from src.models import custom_types
+from src.models.llm_job import (
+    FAIL_RETRY_DELAY_SECONDS,
+    Job,
+    MAX_CONCURRENT_CALLS,
+    MAX_LLM_RETRIES,
+    MAX_RETRY_DELAY_SECONDS,
+    THINKING_LEVEL,
+    TIMEOUT_SECONDS,
+    WAIT_BETWEEN_SUCCESSFUL_CALLS_SECONDS,
+    ThinkingLevel,
+)
 import pandas as pd
 
 
@@ -37,38 +48,20 @@ class GenaiModelError(Exception):
   pass
 
 
-class Job(TypedDict, total=False):
-  """A TypedDict for representing a job to be processed by the LLM."""
-
-  allocations: Any | None
-  job_id: int
-  opinion: str | None
-  opinion_num: int | None
-  prompt: str
-  response_mime_type: str | None
-  response_schema: dict[str, Any] | None
-  retry_attempts: int
-  stats: dict[str, Any]
-  system_prompt: str | None
-  topic: str | None
-  thinking_level: genai_types.ThinkingLevel | None
-  temperature: float | None
+_THINKING_LEVEL_TO_GENAI: dict[ThinkingLevel, genai_types.ThinkingLevel] = {
+    ThinkingLevel.HIGH: genai_types.ThinkingLevel.HIGH,
+    ThinkingLevel.MEDIUM: genai_types.ThinkingLevel.MEDIUM,
+    ThinkingLevel.LOW: genai_types.ThinkingLevel.LOW,
+    ThinkingLevel.MINIMAL: genai_types.ThinkingLevel.MINIMAL,
+}
 
 
-# The maximum number of times an LLM call should be retried.
-MAX_LLM_RETRIES = 20
-# How long in seconds to wait between successful LLM calls.
-WAIT_BETWEEN_SUCCESSFUL_CALLS_SECONDS = 0.1
-# How long in seconds to wait between failed LLM calls.
-FAIL_RETRY_DELAY_SECONDS = 60
-# Maximum number of concurrent API calls. By default Genai limits to 10.
-MAX_CONCURRENT_CALLS = 100
-# Maximum delay in seconds for any retry attempt (1 hour).
-MAX_RETRY_DELAY_SECONDS = 3600
-# Timeout in seconds for API calls. Default Gemini timeout is 10 minutes.
-TIMEOUT_SECONDS = 601
-# Default thinking level for Gemini.
-THINKING_LEVEL: genai_types.ThinkingLevel | None = None
+def _thinking_level_to_genai(
+    level: ThinkingLevel | None,
+) -> genai_types.ThinkingLevel | None:
+  if level is None:
+    return None
+  return _THINKING_LEVEL_TO_GENAI[level]
 
 
 COMPLETED_BATCH_JOB_STATES = frozenset({
@@ -827,7 +820,7 @@ class GenaiModel:
       system_prompt: str | None = None,
       response_mime_type: str | None = None,
       response_schema: dict[str, Any] | None = None,
-      thinking_level: genai_types.ThinkingLevel | None = None,
+      thinking_level: ThinkingLevel | None = None,
       max_concurrent_calls: int = MAX_CONCURRENT_CALLS,
   ) -> dict[str, Any] | None:
     """Calls the Gemini model with the given prompt.
@@ -849,20 +842,21 @@ class GenaiModel:
     if not prompt:
       raise ValueError("Prompt must be present to call Gemini.")
 
-    if thinking_level:
+    genai_thinking_level = _thinking_level_to_genai(thinking_level)
+    if genai_thinking_level:
       if "gemini-3" in self.model:
         thinking_config = genai.types.ThinkingConfig(
-            thinking_level=thinking_level
+            thinking_level=genai_thinking_level
         )
       else:
         thinking_budget_int = 0
-        if thinking_level == genai_types.ThinkingLevel.HIGH:
+        if genai_thinking_level == genai_types.ThinkingLevel.HIGH:
           thinking_budget_int = 20000
-        elif thinking_level == genai_types.ThinkingLevel.MEDIUM:
+        elif genai_thinking_level == genai_types.ThinkingLevel.MEDIUM:
           thinking_budget_int = 10000
-        elif thinking_level == genai_types.ThinkingLevel.LOW:
+        elif genai_thinking_level == genai_types.ThinkingLevel.LOW:
           thinking_budget_int = 5000
-        elif thinking_level == genai_types.ThinkingLevel.MINIMAL:
+        elif genai_thinking_level == genai_types.ThinkingLevel.MINIMAL:
           thinking_budget_int = 1000
         thinking_config = genai.types.ThinkingConfig(
             thinking_budget=thinking_budget_int

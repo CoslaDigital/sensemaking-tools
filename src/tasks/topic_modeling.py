@@ -14,7 +14,7 @@
 
 import logging
 from typing import List, Optional
-from src.models.genai_model import GenaiModel
+from src.models.sensemaking_llm import SensemakingLlm
 from src import sensemaker_utils
 from src import prompts
 from src.tasks import topic_modeling_util
@@ -59,7 +59,7 @@ def _is_valid_opinion(
 
 async def learn_topics(
     statements: list[custom_types.Statement],
-    model: GenaiModel,
+    model: SensemakingLlm,
     additional_context: Optional[str] = None,
 ) -> list[custom_types.FlatTopic]:
   """Learns top-level topics from a list of statements."""
@@ -80,7 +80,7 @@ async def learn_topics(
   )
 
   async def _generate_topics(
-      current_model: GenaiModel,
+      current_model: SensemakingLlm,
   ) -> List[custom_types.FlatTopic]:
     logging.info(
         f"Identifying topics for {len(prompt_input_data)} input items..."
@@ -117,7 +117,7 @@ async def learn_topics(
 
 async def learn_opinions(
     statements: List[custom_types.Statement],
-    model: GenaiModel,
+    model: SensemakingLlm,
     topic: custom_types.Topic,
     additional_context: Optional[str] = None,
 ) -> custom_types.NestedTopic:
@@ -151,7 +151,7 @@ async def learn_opinions(
   )
 
   async def _generate_opinions(
-      current_model: GenaiModel,
+      current_model: SensemakingLlm,
   ) -> Optional[custom_types.NestedTopic]:
     logging.info(
         f"Identifying opinions for topic '{topic.name}' from"

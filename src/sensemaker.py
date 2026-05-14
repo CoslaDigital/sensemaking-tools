@@ -29,7 +29,7 @@ from src import runner_utils, checkpoint_utils
 from src.models import custom_types
 from src.tasks import categorization
 from src.quote_extraction import quote_extraction_lib
-from src.models import genai_model
+from src.models.sensemaking_llm import SensemakingLlm
 
 
 class Sensemaker:
@@ -39,16 +39,16 @@ class Sensemaker:
   categorize statements.
   """
 
-  _genai_model: genai_model.GenaiModel
+  _genai_model: SensemakingLlm
 
   def __init__(
       self,
-      genai_model: genai_model.GenaiModel,
+      genai_model: SensemakingLlm,
   ):
     """Creates a Sensemaker object.
 
     Args:
-        genai_model: The LLM model instance (GenaiModel).
+        genai_model: The LLM backend (e.g. GenaiModel).
     """
     if not genai_model:
       raise ValueError("A genai_model instance must be provided.")

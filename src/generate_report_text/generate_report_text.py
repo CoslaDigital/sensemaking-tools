@@ -35,11 +35,12 @@ import pandas as pd
 
 from src import runner_utils
 from src.models import genai_model
+from src.models.sensemaking_llm import SensemakingLlm
 from src.generate_report_text import generate_report_text_prompts
 
 
 async def generate_text_in_parallel(
-    model: genai_model.GenaiModel, prompt_obj_list: list[dict]
+    model: SensemakingLlm, prompt_obj_list: list[dict]
 ) -> pd.DataFrame:
   # prompt_obj_list members should have prompt, optional topic, opinion fields
   # lambda function extracts text field from response
@@ -49,7 +50,7 @@ async def generate_text_in_parallel(
   return response_df.sort_values('job_id', ascending=True)
 
 
-async def generate_text(model: genai_model.GenaiModel, prompt: str) -> str:
+async def generate_text(model: SensemakingLlm, prompt: str) -> str:
   """Utility function to run a single prompt through the model."""
   # lambda function extracts text field from response
   response_df, _, _, _ = await model.process_prompts_concurrently(
@@ -85,7 +86,7 @@ def get_summary_for_opinion(
 
 
 async def generate_topic_summaries(
-    model: genai_model.GenaiModel,
+    model: SensemakingLlm,
     categorized_quotes_df: pd.DataFrame,
     opinion_summaries_df: pd.DataFrame,
     additional_context: str,
@@ -119,7 +120,7 @@ async def generate_topic_summaries(
 
 
 async def generate_opinion_summaries(
-    model: genai_model.GenaiModel,
+    model: SensemakingLlm,
     categorized_quotes_df: pd.DataFrame,
     additional_context: str,
 ) -> pd.DataFrame:
@@ -144,7 +145,7 @@ async def generate_opinion_summaries(
 
 
 async def generate_overview_summary(
-    model: genai_model.GenaiModel,
+    model: SensemakingLlm,
     topic_summaries_df: pd.DataFrame,
     additional_context: str,
 ) -> str:

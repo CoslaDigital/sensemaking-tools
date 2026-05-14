@@ -18,7 +18,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional, cast
 
-from src.models.genai_model import GenaiModel
+from src.models.sensemaking_llm import SensemakingLlm
 from src.models import custom_types
 from src import runner_utils
 from src import sensemaker_utils
@@ -86,7 +86,7 @@ def parse_response(response_text: str, schema_to_expect: Any) -> Any:
 
 
 async def create_chunks(
-    model: GenaiModel,
+    model: SensemakingLlm,
     instructions: str,
     prompt_input_data: List[str],
     additional_context: Optional[str] = None,
@@ -129,7 +129,7 @@ async def create_chunks(
 
 
 async def generate_topics_with_chunking(
-    model: GenaiModel,
+    model: SensemakingLlm,
     instructions: str,
     prompt_input_data: List[str],
     schema_to_expect: any,
@@ -188,7 +188,7 @@ async def generate_topics_with_chunking(
 
 
 async def _merge_topics(
-    model: GenaiModel,
+    model: SensemakingLlm,
     partial_results: List[custom_types.FlatTopic],
     schema_to_expect: any,
     additional_context: Optional[str] = None,
@@ -227,7 +227,7 @@ async def _merge_topics(
 
 
 async def generate_opinions_with_chunking(
-    model: GenaiModel,
+    model: SensemakingLlm,
     instructions: str,
     prompt_input_data: List[str],
     schema_to_expect: any,
@@ -290,7 +290,7 @@ async def generate_opinions_with_chunking(
 
 
 async def merge_opinions(
-    model: GenaiModel,
+    model: SensemakingLlm,
     partial_results: List[custom_types.NestedTopic],
     schema_to_expect: any,
     parent_topic: custom_types.Topic,

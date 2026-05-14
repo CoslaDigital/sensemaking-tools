@@ -19,16 +19,17 @@ from typing import Any
 from src import attribute_prompt_config
 from src import prompts
 from src.models import genai_model
+from src.models.sensemaking_llm import SensemakingLlm
 from src.models import custom_types
 
 
 class ContentScorer:
-  """Scorer implementation using GenaiModel for efficient content moderation and bridging."""
+  """Scorer implementation using an LLM for content moderation and bridging."""
 
   def __init__(self, api_key: str, model_name: str):
     self.temperature = attribute_prompt_config.MODEL_CONFIG.get("temperature", 0.0)
 
-    self.client = genai_model.GenaiModel(
+    self.client: SensemakingLlm = genai_model.GenaiModel(
         model_name=model_name,
         api_key=api_key
     )

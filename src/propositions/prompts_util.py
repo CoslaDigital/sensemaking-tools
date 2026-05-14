@@ -19,7 +19,7 @@ import logging
 import string
 from typing import Dict, List, Tuple
 from enum import Enum
-from src.models import genai_model
+from src.models.llm_job import Job
 
 
 class QuestionType(Enum):
@@ -42,7 +42,7 @@ def find_prefix_num(row: pd.Series, prefix: str) -> str | None:
 
 # Parsers
 def parse_proposition_response_json_reasoning(
-    response_data: str | dict, _: genai_model.Job
+    response_data: str | dict, _: Job
 ) -> pd.DataFrame:
   """
   Parses a JSON string containing a list of proposition responses into a pandas
@@ -83,7 +83,7 @@ def parse_proposition_response_json_reasoning(
 
 
 def parse_proposition_response_json(
-    resp: dict, _: genai_model.Job
+    resp: dict, _: Job
 ) -> pd.DataFrame:
   """
   Parses a JSON string containing a list of proposition responses into a pandas

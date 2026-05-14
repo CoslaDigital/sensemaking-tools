@@ -15,7 +15,6 @@
 import asyncio
 import unittest
 from unittest.mock import AsyncMock, MagicMock, call, patch
-from src.models.genai_model import GenaiModel
 from src.models import custom_types
 from src.quote_extraction import quote_extraction_lib
 import pandas as pd

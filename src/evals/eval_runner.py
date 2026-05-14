@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Shared utility for running AI evaluations using GenaiModel."""
+"""Shared utility for running AI evaluations using an LLM backend."""
 
 import asyncio
 import logging
@@ -20,7 +20,7 @@ import json
 import random
 from typing import TypedDict, Any
 import pandas as pd
-from src.models import genai_model
+from src.models.sensemaking_llm import SensemakingLlm
 
 # The maximum number of times an evaluation call should be retried.
 MAX_EVAL_RETRIES = 6
@@ -41,9 +41,9 @@ class EvalJob(TypedDict, total=False):
 
 
 class EvalRunner:
-  """A wrapper to run evaluations concurrently with retries using GenaiModel."""
+  """A wrapper to run evaluations concurrently with retries using an LLM."""
 
-  def __init__(self, model: genai_model.GenaiModel):
+  def __init__(self, model: SensemakingLlm):
     self.model = model
 
   async def _eval_worker_with_retry(
@@ -84,7 +84,7 @@ class EvalRunner:
         try:
           logging.info(f"{log_prefix} (Attempt {attempt + 1})...")
 
-          # Call GenaiModel
+          # Call LLM
           response = await self.model.call_gemini(
               prompt=prompt,
               run_name=f"eval_job_{job_id}",

@@ -17,7 +17,7 @@ import logging
 import re
 from typing import List, Optional, cast
 
-from src.models.genai_model import GenaiModel
+from src.models.sensemaking_llm import SensemakingLlm
 from src import checkpoint_utils
 from src import prompts
 from src.models.custom_types import FlatTopic, NestedTopic, Quote, Statement, Topic
@@ -51,7 +51,7 @@ def _prepare_prompts(
 
 async def extract_quotes_from_text(
     statements: List[Statement],
-    model: GenaiModel,
+    model: SensemakingLlm,
     additional_context: Optional[str] = None,
     output_dir: Optional[str] = None,
 ) -> List[Statement]:
@@ -59,7 +59,7 @@ async def extract_quotes_from_text(
 
   Args:
       statements: A list of Statement objects, with topics assigned.
-      model: The GenaiModel to use for extraction.
+      model: The LLM backend to use for extraction.
       additional_context: Optional context for the LLM prompt.
       output_dir: The directory to use for checkpointing.
 
@@ -97,7 +97,7 @@ async def extract_quotes_from_text(
 
 
 async def _get_quotes_realtime(
-    model: GenaiModel,
+    model: SensemakingLlm,
     statements_map_for_quote_update: dict[str, Statement],
     prompts_with_metadata: List[dict],
 ):

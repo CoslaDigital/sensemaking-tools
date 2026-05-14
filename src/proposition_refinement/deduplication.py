@@ -4,7 +4,7 @@ import pandas as pd
 import json
 import re
 import logging
-from src.models.genai_model import GenaiModel
+from src.models.sensemaking_llm import SensemakingLlm
 
 
 def _preprocess_and_add_ids(by_topic_df):
@@ -66,7 +66,9 @@ Example:
   return prompt
 
 
-async def generate_equivalence_sets(processed_by_topic_df, model):
+async def generate_equivalence_sets(
+    processed_by_topic_df, model: SensemakingLlm
+):
   """
   Uses an LLM to cluster propositions with effectively equivalent meaning.
   """
@@ -135,7 +137,9 @@ def _generate_collision_prompt(collision_group):
   return prompt
 
 
-async def _resolve_collision(collision_group, model):
+async def _resolve_collision(
+    collision_group, model: SensemakingLlm
+):
   """
   Uses an LLM to select the best-framed proposition from a set of duplicates.
   """
@@ -309,7 +313,7 @@ async def run_deduplication(
       each row is a proposition.
     final_propositions_per_topic: The number of final propositions to select
       for each topic.
-    model: The GenaiModel instance to use for equivalence detection and
+    model: The LLM backend to use for equivalence detection and
       tie-breaking.
     ranking_column: The name of the column in `by_topic_data` that contains
         the ranked list of propositions to use for selection.

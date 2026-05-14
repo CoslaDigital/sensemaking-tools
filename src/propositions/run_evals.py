@@ -14,7 +14,7 @@
 
 """
 This module provides a utility for running AI evaluations related to
-the propositions and world model using GenaiModel.
+the propositions and world model using an LLM.
 
 Example Usage:
   python3 -m src.propositions.run_evals \
@@ -49,6 +49,7 @@ from typing import Any
 
 import pandas as pd
 from src.models import genai_model
+from src.models.sensemaking_llm import SensemakingLlm
 from src.evals import eval_metrics
 from src.evals import eval_runner
 from src.propositions import world_model_util
@@ -121,7 +122,7 @@ def _prepare_eval_jobs(
 
 
 async def run_agreement_evals_on_r2(
-    df: pd.DataFrame, agreement_on: str, model: genai_model.GenaiModel
+    df: pd.DataFrame, agreement_on: str, model: SensemakingLlm
 ) -> pd.DataFrame:
   """
   Runs agreement evaluations on the r2 data.
@@ -189,7 +190,7 @@ async def run_agreement_evals_on_r2(
 
 
 async def run_evals_on_propositions(
-    df: pd.DataFrame, model: genai_model.GenaiModel
+    df: pd.DataFrame, model: SensemakingLlm
 ) -> pd.DataFrame:
   """
   Runs evaluations on the generated propositions.
@@ -365,7 +366,7 @@ async def main():
       "--api_key",
       type=str,
       required=False,
-      help="The API key for GenaiModel.",
+      help="The API key for the LLM.",
   )
   parser.add_argument(
       "--eval_model_name",
@@ -384,11 +385,11 @@ async def main():
       format="%(asctime)s - %(levelname)s - %(message)s",
   )
 
-  logging.info("Starting evaluation runner. Using GenaiModel.")
+  logging.info("Starting evaluation runner. Using LLM backend.")
 
   if not args.api_key and "GOOGLE_API_KEY" not in os.environ:
     logging.error(
-        "API key for GenaiModel is required (either via --api_key or"
+        "API key for the LLM is required (either via --api_key or"
         " GOOGLE_API_KEY env var)."
     )
     return

@@ -29,7 +29,8 @@ from more_itertools import batched
 from src.tasks.topic_modeling_util import parse_response
 from pydantic import TypeAdapter, ValidationError
 from src import prompts
-from src.models import genai_model
+from src.models import llm_job
+from src.models.sensemaking_llm import SensemakingLlm
 from src.sensemaker_utils import execute_concurrently, get_prompt
 from src import runner_utils
 from src.models.custom_types import (
@@ -57,7 +58,7 @@ MAX_ITEMS_PER_BATCH = 50
 
 async def categorize_topics(
     statements: list[Statement],
-    model: genai_model.GenaiModel,
+    model: SensemakingLlm,
     current_topics: list[Topic] | None = None,
     additional_context: str | None = None,
 ) -> tuple[list[Statement], list[Topic]]:
@@ -126,7 +127,7 @@ async def categorize_topics(
 async def learn_global_opinions(
     statements_with_topics_and_quotes: list[Statement],
     topics_to_process: list[Topic],
-    model: genai_model.GenaiModel,
+    model: SensemakingLlm,
     additional_context: str | None = None,
 ) -> dict[str, Any]:
   """Learns opinions for all topics globally using concurrent batching.
@@ -357,7 +358,7 @@ async def categorize_opinions(
     statements_with_topics_and_quotes: list[Statement],
     topics_to_process: list[Topic],
     topic_to_opinions_map: dict[str, Any],
-    model: genai_model.GenaiModel,
+    model: SensemakingLlm,
     additional_context: str | None = None,
     run_autoraters: bool = True,
 ) -> Iterable[Statement]:
@@ -367,7 +368,7 @@ async def categorize_opinions(
     statements_with_topics_and_quotes: list of statements to categorize.
     topics_to_process: list of topics to categorize opinions within.
     topic_to_opinions_map: Map of topic names to their learned opinion structures.
-    model: GenaiModel instance for LLM calls.
+    model: SensemakingLlm instance for LLM calls.
     additional_context: Additional context to provide to the LLM.
     run_autoraters: Whether to run autorater evaluations.
 
@@ -450,7 +451,7 @@ async def categorize_opinions(
     ) = await model.process_prompts_concurrently(
         all_prompts,
         response_parser=_parser,
-        max_concurrent_calls=genai_model.MAX_CONCURRENT_CALLS,
+        max_concurrent_calls=llm_job.MAX_CONCURRENT_CALLS,
         skip_log=True,
     )
     all_stage_5_stats.extend(stats.to_dict("records"))
@@ -530,9 +531,9 @@ async def categorize_opinions(
       logging.warning(
           f"Retrying {total_retrying} statements across {len(retry_counts)}"
           " topics. Sleeping"
-          f" {genai_model.WAIT_BETWEEN_SUCCESSFUL_CALLS_SECONDS}s..."
+          f" {llm_job.WAIT_BETWEEN_SUCCESSFUL_CALLS_SECONDS}s..."
       )
-      await asyncio.sleep(genai_model.WAIT_BETWEEN_SUCCESSFUL_CALLS_SECONDS)
+      await asyncio.sleep(llm_job.WAIT_BETWEEN_SUCCESSFUL_CALLS_SECONDS)
 
   # Handle exhausted retries - Default to 'Other'
   _assign_defaults_for_exhausted_retries(
@@ -691,7 +692,7 @@ def _process_opinion_llm_results(
 
 
 async def _run_opinion_autoraters(
-    model: genai_model.GenaiModel,
+    model: SensemakingLlm,
     autorater_candidates: list[dict[str, Any]],
     input_statements_map: dict[str, Statement],
     autorater_retry_counts: dict[str, int],
@@ -718,7 +719,7 @@ async def _run_opinion_autoraters(
       stop_event,
   ) = model.start_concurrent_workers(
       response_parser=parse_eval_response,
-      max_concurrent_calls=genai_model.MAX_CONCURRENT_CALLS,
+      max_concurrent_calls=llm_job.MAX_CONCURRENT_CALLS,
   )
 
   # 2. Generate and Push Prompts
@@ -735,7 +736,7 @@ async def _run_opinion_autoraters(
       p["metadata"]["parent_topic_name"] = candidate_group["parent_topic_name"]
 
       # Add default values to stats and retry_attempts in order to satisfy
-      # the requirements of GenaiModel._api_worker_with_retry and skip
+      # the requirements of the LLM worker pool retry logic and skip
       # processing this job if they are not present.
       if "stats" not in p or p["stats"] is None:
         p["stats"] = {}
@@ -747,7 +748,7 @@ async def _run_opinion_autoraters(
       queue.put_nowait(p)
 
   # 3. Signal Completion
-  for _ in range(genai_model.MAX_CONCURRENT_CALLS):
+  for _ in range(llm_job.MAX_CONCURRENT_CALLS):
     queue.put_nowait(None)
 
   # 4. Wait for Workers
@@ -967,7 +968,7 @@ def _prepare_categorization_prompts(
 
 async def _process_topic_categorization(
     statements_to_categorize: list[Statement],
-    model: genai_model.GenaiModel,
+    model: SensemakingLlm,
     target_topics: list[Topic],
     additional_context: str | None = None,
 ) -> list[StatementRecord]:
@@ -1050,7 +1051,7 @@ async def _process_topic_categorization(
         )
       break
 
-    # Call GenaiModel
+    # Call LLM
     def _parser(resp, job):
       parsed_wrapper = parse_response(resp["text"], job["response_schema"])
       return parsed_wrapper.items
@@ -1058,7 +1059,7 @@ async def _process_topic_categorization(
     results_df, stats, wall_delay, _ = await model.process_prompts_concurrently(
         prompt_jobs,
         response_parser=_parser,
-        max_concurrent_calls=genai_model.MAX_CONCURRENT_CALLS,
+        max_concurrent_calls=llm_job.MAX_CONCURRENT_CALLS,
         skip_log=True,
     )
     all_stage_stats.extend(stats.to_dict("records"))
@@ -1131,9 +1132,9 @@ async def _process_topic_categorization(
       logging.warning(
           f"Attempt {attempt}: {len(uncategorized_for_retry)} uncategorized"
           " items need retry. Retrying in"
-          f" {genai_model.WAIT_BETWEEN_SUCCESSFUL_CALLS_SECONDS}s..."
+          f" {llm_job.WAIT_BETWEEN_SUCCESSFUL_CALLS_SECONDS}s..."
       )
-      await asyncio.sleep(genai_model.WAIT_BETWEEN_SUCCESSFUL_CALLS_SECONDS)
+      await asyncio.sleep(llm_job.WAIT_BETWEEN_SUCCESSFUL_CALLS_SECONDS)
 
   if uncategorized_for_retry:
     item_ids = [s.id for s in uncategorized_for_retry]

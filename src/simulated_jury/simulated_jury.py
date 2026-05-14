@@ -10,7 +10,10 @@ from typing import List
 #     from itertools import batched
 # except ImportError:
 from itertools import islice
-from google.genai import types as genai_types
+
+from src import participation
+from src.models.llm_job import Job, MAX_LLM_RETRIES, ThinkingLevel
+from src.models.sensemaking_llm import SensemakingLlm
 
 
 # Backport of itertools.batched for python<3.12
@@ -23,14 +26,13 @@ def batched(iterable, n):
     yield batch
 
 
+import json
 import logging
 import os
 import random
-import json
-from src.models import genai_model
-from src import participation
-import pandas as pd
 import re
+
+import pandas as pd
 
 # Votes within ApprovalScale options that are considered "positive" approvals.
 POSITIVE_APPROVAL_VOTES = frozenset([
@@ -102,7 +104,7 @@ class ApprovalScale(Enum):
 def _compute_stats_summary(
     llm_response_df: pd.DataFrame,
     llm_response_stats_df: pd.DataFrame,
-    jobs: List[genai_model.Job],
+    jobs: List[Job],
     duration_seconds: float,
     voting_mode: VotingMode,
     topic_name: str = "",
@@ -225,7 +227,7 @@ def parse_llm_ranking_response(resp: dict, job: dict) -> dict:
       # On the final attempt, accept a partial ranking to avoid failing the job.
       is_last_attempt = (
           job.get("current_attempt", 0)
-          >= job.get("retry_attempts", genai_model.MAX_LLM_RETRIES) - 1
+          >= job.get("retry_attempts", MAX_LLM_RETRIES) - 1
       )
       if is_last_attempt:
         logging.debug(
@@ -354,7 +356,7 @@ async def run_simulated_jury(
     participants_df: pd.DataFrame,
     statements: list[str],
     voting_mode: VotingMode,
-    model: genai_model.GenaiModel,
+    model: SensemakingLlm,
     topic_name: str = "",
     opinion_name: str = "",
     batch_size: int = None,
@@ -456,7 +458,7 @@ async def run_simulated_jury(
           "prompt_char_count": len(prompt),
           "data_row": row.to_dict(),
           "shuffled_statements": shuffled_batch,
-          "thinking_level": genai_types.ThinkingLevel.HIGH,
+          "thinking_level": ThinkingLevel.HIGH,
           "response_schema": schema,
           "response_mime_type": "application/json",
       })

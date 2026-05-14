@@ -8,7 +8,7 @@ chooses the top N propositions from the remaining non-duplicate set for each top
 import pandas as pd
 import json
 import re
-from src.models.genai_model import GenaiModel
+from src.models.sensemaking_llm import SensemakingLlm
 from . import deduplication
 
 
@@ -53,7 +53,7 @@ def _generate_topic_equivalence_prompt(propositions_map):
   return prompt
 
 
-async def _generate_topic_equivalence_sets(world_model_df, model):
+async def _generate_topic_equivalence_sets(world_model_df, model: SensemakingLlm):
   """
   Calls the LLM to generate the cross-topic equivalence sets.
   """
@@ -139,7 +139,7 @@ async def _resolve_winning_topic(prop_set, world_model_df, model):
 async def run_topic_deduplication(
     by_topic_data,
     final_propositions_per_topic,
-    model,
+    model: SensemakingLlm,
     ranking_column: str = 'full_schulze_ranking',
 ):
   """Main orchestrator for the topic-based deduplication process.
@@ -156,7 +156,7 @@ async def run_topic_deduplication(
       have a column containing a ranked list of proposition strings.
     final_propositions_per_topic: The number of final propositions to select
       for each topic after deduplication.
-    model: The GenaiModel instance to use for equivalence detection and
+    model: The LLM backend to use for equivalence detection and
       tie-breaking.
     ranking_column: The name of the column in `by_topic_data` that contains
         the ranked list of propositions to use for selection.

@@ -16,7 +16,7 @@ from typing import List
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from src.models.genai_model import GenaiModel
+from src.models.sensemaking_llm import SensemakingLlm
 from src.models import custom_types
 from src.tasks import topic_modeling_util
 import pandas as pd
@@ -25,7 +25,7 @@ import pandas as pd
 class TopicModelingUtilTest(unittest.IsolatedAsyncioTestCase):
 
   def setUp(self):
-    self.model = AsyncMock(spec=GenaiModel)
+    self.model = AsyncMock(spec=SensemakingLlm)
     self.parent_topic = custom_types.FlatTopic(name="Parent Topic")
 
   async def test_generate_topics_with_chunking_single_chunk(self):

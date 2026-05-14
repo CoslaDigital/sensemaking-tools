@@ -23,13 +23,14 @@ import pandas as pd
 from src import prompts
 from src.models import custom_types
 from src.models import genai_model
+from src.models.sensemaking_llm import SensemakingLlm
 
 # Global translation cache to avoid re-translating same strings across calls
 _TRANSLATION_CACHE = {}
 
 
 async def translate_text_batch(
-    texts: list[str], model: genai_model.GenaiModel, target_language: str
+    texts: list[str], model: SensemakingLlm, target_language: str
 ) -> dict[str, dict[str, Any]]:
   """Translates a batch of texts using Gemini, utilizing a global cache."""
   # Filter out texts already in cache
@@ -69,7 +70,7 @@ async def translate_text_batch(
 async def translate_dataframe(
     df: pd.DataFrame,
     columns: list[str],
-    model: genai_model.GenaiModel,
+    model: SensemakingLlm,
     target_language: str,
 ) -> pd.DataFrame:
   """Detects language and translates non-English responses in a DataFrame."""
