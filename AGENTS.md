@@ -15,11 +15,15 @@ More details can be found in the README.md file, along with instructions for run
 
 ## Architecture & Tech Stack
 
-### 1. LLM / Gemini Integration
-We use a custom wrapper for all Gemini model interactions. 
-- **NEVER** import `google-generativeai`, `vertexai`, `litellm`, or other direct API libraries in the feature code.
-- **ALWAYS** use the internal wrapper located at `src/models/genai_model.py`. 
-- *(Agent Note: If you are asked to implement a new LLM feature, first review `src/models/genai_model.py` to understand its expected inputs, outputs, and error handling).*
+### 1. LLM integration
+Pipeline code depends on **`SensemakingLlm`** ([`src/models/sensemaking_llm.py`](src/models/sensemaking_llm.py)), not a specific vendor SDK.
+
+- **NEVER** import `google-generativeai`, `vertexai`, `litellm`, `openai`, or similar directly in feature code under `src/` (outside `src/models/`).
+- **Construct backends** via [`create_llm_from_args`](src/models/sensemaker_model_cli.py) (or [`create_sensemaking_llm`](src/models/llm_factory.py) with a parsed `SensemakerModelConfig`) from CLI options in [`sensemaker_model_cli.py`](src/models/sensemaker_model_cli.py):
+  - `--adapter gemini` (default) → [`GenaiModel`](src/models/genai_model.py) / `GOOGLE_API_KEY`
+  - `--adapter openai-compatible` + `--provider openai|openrouter|mistral` → [`OpenAiCompatLlm`](src/models/openai_compat_llm.py)
+- Runners should call `add_sensemaker_model_options(parser)` then `create_llm_from_args(args, model_name=...)`. Legacy `--gemini_api_key` is still accepted as an API key alias.
+- *(Agent Note: Review `genai_model.py` and `openai_compat_llm.py` for completion contracts, retries, and structured output behavior.)*
 
 ### 2. Data Handling (CSV)
 - We use `pandas` exclusively for reading, writing, and manipulating CSV data.

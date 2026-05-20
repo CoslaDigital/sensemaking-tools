@@ -44,7 +44,7 @@ import typing
 import pandas as pd
 from src import prompts
 from src import runner_utils
-from src.models import genai_model
+from src.models import sensemaker_model_cli
 from src.propositions import input_csv_validation
 from src.propositions import prompts_util
 from src.propositions import world_model_util
@@ -362,8 +362,11 @@ async def main():
   parser.add_argument(
       "--gemini_api_key",
       type=str,
-      required=True,
-      help="The Gemini API key.",
+      required=False,
+      help=(
+          "Deprecated: use --api_key or provider env vars. Kept for backward"
+          " compatibility."
+      ),
   )
   parser.add_argument(
       "--output_file_name",
@@ -428,6 +431,7 @@ async def main():
       parser,
       help_str="Optional additional context to be added to the prompt.",
   )
+  sensemaker_model_cli.add_sensemaker_model_options(parser)
 
   args = parser.parse_args()
 
@@ -510,8 +514,10 @@ async def main():
     llm_response_stats = pd.DataFrame([{"combined_tokens": 0}])
 
   else:
-    model = genai_model.GenaiModel(
-        api_key=args.gemini_api_key, model_name=args.model_name
+    model = sensemaker_model_cli.create_llm_from_args(
+        args,
+        model_name=args.model_name,
+        api_key=args.gemini_api_key,
     )
 
     all_prompts = []

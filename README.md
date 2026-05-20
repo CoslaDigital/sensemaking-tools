@@ -96,6 +96,55 @@ python3 -m src.categorization_runner \
 
   * #### **Considerations**: Use this when you have a specific taxonomy you want to enforce.
 
+##### LLM adapter flags (pipeline commands)
+
+These flags work on LLM-backed pipeline steps: `categorization_runner`, `get_bridging_scores` (when `--scorer_type GEMINI`), `generate_report_text`, `propositions.proposition_generator`, `proposition_refinement.main`, `proposition_simplification_runner`, `simulated_jury.main`, `evals.evals`, `translate_csv`, and `opinion_learning_runner`. If you omit `--adapter`, the default is **`gemini`**.
+
+* `--adapter <gemini|openai-compatible>` — default: `gemini`
+* `--provider <openai|openrouter|mistral>` — required when `--adapter` is `openai-compatible`
+* `--base_url <url>` — optional override (defaults depend on provider)
+* `--model_name <model>` — model id for the selected adapter
+* `--api_key <token>` — optional; otherwise uses `GOOGLE_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or `MISTRAL_API_KEY`
+
+OpenRouter example:
+
+```shell
+export OPENROUTER_API_KEY="your_key_here"
+python3 -m src.categorization_runner \
+  --adapter openai-compatible \
+  --provider openrouter \
+  --model_name openai/gpt-4o \
+  --input_file <OUTPUT_DIR>/processed.csv \
+  --output_dir <OUTPUT_DIR>/categorization \
+  --additional_context_file src/default-additional-context.md
+```
+
+OpenAI example:
+
+```shell
+export OPENAI_API_KEY="your_key_here"
+python3 -m src.categorization_runner \
+  --adapter openai-compatible \
+  --provider openai \
+  --model_name gpt-4o \
+  --input_file <OUTPUT_DIR>/processed.csv \
+  --output_dir <OUTPUT_DIR>/categorization \
+  --additional_context_file src/default-additional-context.md
+```
+
+Mistral example:
+
+```shell
+export MISTRAL_API_KEY="your_key_here"
+python3 -m src.categorization_runner \
+  --adapter openai-compatible \
+  --provider mistral \
+  --model_name mistral-small-latest \
+  --input_file <OUTPUT_DIR>/processed.csv \
+  --output_dir <OUTPUT_DIR>/categorization \
+  --additional_context_file src/default-additional-context.md
+```
+
 ##### Understanding the Outputs:
 
 #### Running this script generates several files in your output directory. Here is how they differ:
@@ -113,10 +162,27 @@ python3 -m src.categorization_runner \
 Apply classifiers to score the extracted quotes on attributes like reasoning, personal stories, and curiosity. This helps surface the most constructive contributions. By default these are the first quotes shown in the interactive report.
 
 ```shell
+export GOOGLE_API_KEY="your_key_here"
 python3 -m src.get_bridging_scores \
   --input_csv <OUTPUT_DIR>/categorization/categorized_without_other_filtered.csv \
   --output_csv <OUTPUT_DIR>/bridging_scores.csv \
-  --api_key "$GOOGLE_API_KEY"
+  --scorer_type GEMINI \
+  --model_name gemini-3.1-flash-lite-preview
+```
+
+`--scorer_type` selects the backend: **`GEMINI`** uses the LLM adapter flags above; **`PERSPECTIVE`** uses the [Perspective API](https://developers.perspectiveapi.com/) and requires `--api_key` to be a Perspective key (adapter flags are ignored).
+
+OpenAI-compatible bridging example:
+
+```shell
+export OPENAI_API_KEY="your_key_here"
+python3 -m src.get_bridging_scores \
+  --adapter openai-compatible \
+  --provider openai \
+  --model_name gpt-4o-mini \
+  --scorer_type GEMINI \
+  --input_csv <OUTPUT_DIR>/categorization/categorized_without_other_filtered.csv \
+  --output_csv <OUTPUT_DIR>/bridging_scores.csv
 ```
 
 #### 4\. Discussion Summarization

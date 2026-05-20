@@ -282,7 +282,7 @@ class CategorizationRunnerTest(unittest.TestCase):
     # we expect 0 rows for this quote.
     self.assertEqual(len(output_rows), 0)
 
-  @mock.patch('src.categorization_runner.genai_model.GenaiModel')
+  @mock.patch('src.categorization_runner.sensemaker_model_cli.create_llm_from_args')
   @mock.patch('src.categorization_runner.sensemaker.Sensemaker')
   @mock.patch('src.categorization_runner.runner_utils')
   @mock.patch('src.categorization_runner._convert_csv_rows_to_statements')
@@ -295,7 +295,7 @@ class CategorizationRunnerTest(unittest.TestCase):
       mock_convert,
       mock_runner_utils,
       mock_sensemaker_cls,
-      _mock_genai_model_cls,
+      _mock_create_llm,
   ):
     # Setup mocks
     mock_parse_args.return_value = argparse.Namespace(
@@ -308,6 +308,12 @@ class CategorizationRunnerTest(unittest.TestCase):
         log_level='INFO',
         skip_autoraters=False,
         max_llm_retries=None,
+        adapter='gemini',
+        provider=None,
+        base_url=None,
+        api_key=None,
+        openrouter_site_url=None,
+        openrouter_app_name=None,
     )
     mock_read_csv.return_value = [
         {'participant_id': '1', 'survey_text': 'test'}

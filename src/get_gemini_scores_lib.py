@@ -18,7 +18,6 @@ import pydantic
 from typing import Any
 from src import attribute_prompt_config
 from src import prompts
-from src.models import genai_model
 from src.models.sensemaking_llm import SensemakingLlm
 from src.models import custom_types
 
@@ -26,22 +25,19 @@ from src.models import custom_types
 class ContentScorer:
   """Scorer implementation using an LLM for content moderation and bridging."""
 
-  def __init__(self, api_key: str, model_name: str):
+  def __init__(self, client: SensemakingLlm):
+    """Initializes the scorer with a SensemakingLlm backend."""
     self.temperature = attribute_prompt_config.MODEL_CONFIG.get("temperature", 0.0)
-
-    self.client: SensemakingLlm = genai_model.GenaiModel(
-        model_name=model_name,
-        api_key=api_key
-    )
+    self.client: SensemakingLlm = client
 
   async def score_async(
       self,
       texts_with_ids: list[dict[str, Any]],
       attributes: list[str]
   ) -> list[dict[str, Any]]:
-    """Scores attributes independently using concurrent Gemini calls."""
+    """Scores attributes independently using concurrent LLM calls."""
 
-    def parse_gemini_response(resp: dict[str, Any], job: dict[str, Any]) -> dict[str, Any]:
+    def parse_llm_response(resp: dict[str, Any], job: dict[str, Any]) -> dict[str, Any]:
       attr = job.get("target_attr")
       response_text = resp.get("text", "{}")
       try:
@@ -51,7 +47,7 @@ class ContentScorer:
         logging.error(f"Failed Pydantic validation for {attr}: {e}. Raw: {response_text}")
         return {attr: 0.0}
       except Exception as e:
-        logging.error(f"Failed to parse Gemini response for {attr}: {e}. Raw: {response_text}")
+        logging.error(f"Failed to parse LLM response for {attr}: {e}. Raw: {response_text}")
         return {attr: 0.0}
 
     jobs = []
@@ -90,7 +86,7 @@ class ContentScorer:
 
     results_df, _, _, _ = await self.client.process_prompts_concurrently(
         jobs,
-        parse_gemini_response
+        parse_llm_response
     )
 
     if results_df.empty:

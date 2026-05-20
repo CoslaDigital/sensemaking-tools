@@ -37,7 +37,7 @@ import argparse
 import asyncio
 import pandas as pd
 
-from src.models import genai_model
+from src.models import sensemaker_model_cli
 from src.models.sensemaking_llm import SensemakingLlm
 
 
@@ -90,7 +90,8 @@ def get_full_prompt(instructions, proposition):
 
 async def main(args):
   """Main function to run the proposition simplification experiment."""
-  model = genai_model.GenaiModel(
+  model = sensemaker_model_cli.create_llm_from_args(
+      args,
       model_name=args.model_name,
       api_key=args.gemini_api_key,
   )
@@ -129,8 +130,8 @@ def get_args():
       "--gemini_api_key",
       required=False,
       help=(
-          "Google AI Studio API Key. If not provided, uses GOOGLE_API_KEY env"
-          " var."
+          "Deprecated: use --api_key or provider env vars. Kept for backward"
+          " compatibility."
       ),
   )
   parser.add_argument(
@@ -151,6 +152,7 @@ def get_args():
       default="proposition",
       help="The name of the proposition column to use. Default: proposition.",
   )
+  sensemaker_model_cli.add_sensemaker_model_options(parser)
   return parser.parse_args()
 
 

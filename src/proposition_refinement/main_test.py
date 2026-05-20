@@ -577,7 +577,7 @@ class PropositionRefinementMainTest(unittest.TestCase):
           "src.proposition_refinement.main.run_nuanced_approval_jury",
           new_callable=AsyncMock,
       ), patch(
-          "src.proposition_refinement.main.genai_model.GenaiModel"
+          "src.proposition_refinement.main.sensemaker_model_cli.create_llm_from_args"
       ):
         yield mock_stage_1
 

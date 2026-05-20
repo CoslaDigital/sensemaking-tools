@@ -33,7 +33,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
   sys.path.insert(0, project_root)
 
-from src.models import genai_model
+from src.models import sensemaker_model_cli
 from src.models import custom_types
 from src.tasks import topic_modeling
 from src import runner_utils
@@ -115,11 +115,6 @@ async def main():
       help="Number of times to run the opinion learning process.",
   )
   parser.add_argument(
-      "--api_key",
-      type=str,
-      help="The Google AI Studio API Key.",
-  )
-  parser.add_argument(
       "--model_name",
       type=str,
       default="gemini-2.5-pro",
@@ -132,6 +127,7 @@ async def main():
       choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
       help="Set the logging level. Default: INFO.",
   )
+  sensemaker_model_cli.add_sensemaker_model_options(parser)
 
   args = parser.parse_args()
 
@@ -158,9 +154,8 @@ async def main():
 
   additional_context = runner_utils.get_additional_context(args)
 
-  genai_model_instance = genai_model.GenaiModel(
-      model_name=args.model_name,
-      api_key=args.api_key,
+  genai_model_instance = sensemaker_model_cli.create_llm_from_args(
+      args, model_name=args.model_name
   )
 
   topics = sorted(

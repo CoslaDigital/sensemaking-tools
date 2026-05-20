@@ -32,7 +32,7 @@ import os
 import sys
 
 import pandas as pd
-from src.models import genai_model
+from src.models import sensemaker_model_cli
 from src.evals import eval_metrics
 from src.evals import eval_runner
 
@@ -54,16 +54,13 @@ async def main(args):
       format="%(asctime)s - %(levelname)s - %(message)s",
   )
 
-  api_key = args.api_key or os.environ.get("GOOGLE_API_KEY")
-  if not api_key:
-    logging.error(
-        "API key is required. Provide it via --api_key or GOOGLE_API_KEY"
-        " environment variable."
+  try:
+    model = sensemaker_model_cli.create_llm_from_args(
+        args, model_name=args.model_name
     )
+  except ValueError as e:
+    logging.error("%s", e)
     return
-
-  # Initialize GenaiModel
-  model = genai_model.GenaiModel(model_name=args.model_name, api_key=api_key)
 
   selected_metric = _AVAILABLE_METRICS.get(args.metric_name)
   if not selected_metric:
@@ -214,11 +211,7 @@ def get_args():
           f" {list(_AVAILABLE_METRICS.keys())}."
       ),
   )
-  parser.add_argument(
-      "--api_key",
-      type=str,
-      help="Google GenAI API Key.",
-  )
+  sensemaker_model_cli.add_sensemaker_model_options(parser)
 
   return parser.parse_args()
 

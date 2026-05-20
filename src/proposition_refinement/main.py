@@ -24,7 +24,7 @@ from src.proposition_refinement import deduplication
 from src.social_choice import proportional_approval_voting
 from src import participation
 from src import runner_utils
-from src.models import genai_model
+from src.models import sensemaker_model_cli
 
 
 def pipeline_stage(name=None, check_fn=None):
@@ -1035,8 +1035,8 @@ async def main():
       type=str,
       default=None,
       help=(
-          "The Gemini API key. If not provided, it will be read from the"
-          " GOOGLE_API_KEY environment variable."
+          "Deprecated: use --api_key or provider env vars. Kept for backward"
+          " compatibility."
       ),
   )
   parser.add_argument(
@@ -1076,6 +1076,7 @@ async def main():
       type=str,
       help="Path to the full, processed R2 participant data CSV file.",
   )
+  sensemaker_model_cli.add_sensemaker_model_options(parser)
   args = parser.parse_args()
 
   # Configure logging
@@ -1086,20 +1087,15 @@ async def main():
       stream=sys.stdout,
   )
 
-  gemini_api_key = args.gemini_api_key or os.environ.get("GOOGLE_API_KEY")
-  if not gemini_api_key:
-    raise ValueError(
-        "Gemini API key not provided. Please set the GOOGLE_API_KEY environment"
-        " variable or use the --gemini_api_key argument."
-    )
-
-  sim_jury_model = genai_model.GenaiModel(
-      api_key=gemini_api_key,
+  sim_jury_model = sensemaker_model_cli.create_llm_from_args(
+      args,
       model_name=args.simulated_jury_model_name,
+      api_key=args.gemini_api_key,
   )
-  nuanced_props_model = genai_model.GenaiModel(
-      api_key=gemini_api_key,
+  nuanced_props_model = sensemaker_model_cli.create_llm_from_args(
+      args,
       model_name=args.nuanced_propositions_model_name,
+      api_key=args.gemini_api_key,
   )
 
   args.additional_context = runner_utils.get_additional_context(args)

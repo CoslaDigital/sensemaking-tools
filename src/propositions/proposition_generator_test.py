@@ -213,7 +213,7 @@ class WorldModelBuilderTest(unittest.TestCase):
 
   def _setup_main_mocks(
       self,
-      mock_genai_model,
+      mock_create_llm,
       mock_analyze,
       with_reasoning=True,
   ):
@@ -268,13 +268,15 @@ class WorldModelBuilderTest(unittest.TestCase):
         mock_async_function
     )
     mock_model_instance.calculate_token_count_needed.return_value = 100
-    mock_genai_model.return_value = mock_model_instance
+    mock_create_llm.return_value = mock_model_instance
     return mock_model_instance
 
   @mock.patch(
       "src.propositions.proposition_generator.analyze_and_allocate_by_opinion"
   )
-  @mock.patch("src.propositions.proposition_generator.genai_model.GenaiModel")
+  @mock.patch(
+      "src.propositions.proposition_generator.sensemaker_model_cli.create_llm_from_args"
+  )
   @mock.patch("src.propositions.world_model_util.save_dataframe_to_pickle")
   @mock.patch("src.propositions.world_model_util.save_propositions_as_csv")
   @mock.patch("src.propositions.world_model_util.read_csv_to_dataframe")
@@ -293,13 +295,13 @@ class WorldModelBuilderTest(unittest.TestCase):
       mock_read_csv,
       mock_save_csv,
       mock_save_pickle,
-      mock_genai_model,
+      mock_create_llm,
       mock_analyze_opinion,
   ):
     """Tests the main function with split_by='opinion' and no reasoning."""
     mock_read_csv.side_effect = [self.df_r1, self.df_r2]
     mock_model_instance = self._setup_main_mocks(
-        mock_genai_model,
+        mock_create_llm,
         mock_analyze_opinion,
         with_reasoning=False,
     )
@@ -320,9 +322,10 @@ class WorldModelBuilderTest(unittest.TestCase):
 
     self.assertEqual(mock_read_csv.call_count, 2)
     mock_analyze_opinion.assert_called_once()
-    mock_genai_model.assert_called_once_with(
-        api_key="test_key", model_name="gemini-2.5-pro"
-    )
+    mock_create_llm.assert_called_once()
+    call_kwargs = mock_create_llm.call_args.kwargs
+    self.assertEqual(call_kwargs.get("api_key"), "test_key")
+    self.assertEqual(call_kwargs.get("model_name"), "gemini-2.5-pro")
     self.assertEqual(
         mock_model_instance.calculate_token_count_needed.call_count, 5
     )
@@ -350,7 +353,9 @@ class WorldModelBuilderTest(unittest.TestCase):
   @mock.patch(
       "src.propositions.proposition_generator.analyze_and_allocate_by_opinion"
   )
-  @mock.patch("src.propositions.proposition_generator.genai_model.GenaiModel")
+  @mock.patch(
+      "src.propositions.proposition_generator.sensemaker_model_cli.create_llm_from_args"
+  )
   @mock.patch("src.propositions.world_model_util.save_dataframe_to_pickle")
   @mock.patch("src.propositions.world_model_util.save_propositions_as_csv")
   @mock.patch("src.propositions.world_model_util.read_csv_to_dataframe")
@@ -369,12 +374,12 @@ class WorldModelBuilderTest(unittest.TestCase):
       mock_read_csv,
       mock_save_csv,
       mock_save_pickle,
-      mock_genai_model,
+      mock_create_llm,
       mock_analyze_opinion,
   ):
     """Tests the main function when no r2 file is provided."""
     mock_read_csv.return_value = self.df_r1
-    self._setup_main_mocks(mock_genai_model, mock_analyze_opinion)
+    self._setup_main_mocks(mock_create_llm, mock_analyze_opinion)
 
     test_args = [
         "proposition_generator.py",
@@ -398,7 +403,9 @@ class WorldModelBuilderTest(unittest.TestCase):
   @mock.patch(
       "src.propositions.proposition_generator.analyze_and_allocate_by_opinion"
   )
-  @mock.patch("src.propositions.proposition_generator.genai_model.GenaiModel")
+  @mock.patch(
+      "src.propositions.proposition_generator.sensemaker_model_cli.create_llm_from_args"
+  )
   @mock.patch("src.propositions.world_model_util.save_dataframe_to_pickle")
   @mock.patch("src.propositions.world_model_util.save_propositions_as_csv")
   @mock.patch("src.propositions.world_model_util.read_csv_to_dataframe")
@@ -417,13 +424,13 @@ class WorldModelBuilderTest(unittest.TestCase):
       mock_read_csv,
       mock_save_csv,
       mock_save_pickle,
-      mock_genai_model,
+      mock_create_llm,
       mock_analyze_opinion,
   ):
     """Tests the optimization when prop_count=1 and include_opinion=True."""
     mock_read_csv.return_value = self.df_r1
     mock_model_instance = self._setup_main_mocks(
-        mock_genai_model, mock_analyze_opinion
+        mock_create_llm, mock_analyze_opinion
     )
 
     test_args = [
@@ -457,7 +464,9 @@ class WorldModelBuilderTest(unittest.TestCase):
   @mock.patch(
       "src.propositions.proposition_generator.analyze_and_allocate_by_opinion"
   )
-  @mock.patch("src.propositions.proposition_generator.genai_model.GenaiModel")
+  @mock.patch(
+      "src.propositions.proposition_generator.sensemaker_model_cli.create_llm_from_args"
+  )
   @mock.patch("src.propositions.world_model_util.save_dataframe_to_pickle")
   @mock.patch("src.propositions.world_model_util.save_propositions_as_csv")
   @mock.patch("src.propositions.world_model_util.read_csv_to_dataframe")
@@ -476,13 +485,13 @@ class WorldModelBuilderTest(unittest.TestCase):
       mock_read_csv,
       mock_save_csv,
       mock_save_pickle,
-      mock_genai_model,
+      mock_create_llm,
       mock_analyze_opinion,
   ):
     """Tests that opinion is NOT enforced when include_opinion=False."""
     mock_read_csv.return_value = self.df_r1
     mock_model_instance = self._setup_main_mocks(
-        mock_genai_model, mock_analyze_opinion
+        mock_create_llm, mock_analyze_opinion
     )
 
     # Setup the mock to return propositions that DO NOT include the original opinion

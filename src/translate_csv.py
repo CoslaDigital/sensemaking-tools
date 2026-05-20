@@ -22,7 +22,7 @@ from typing import Any
 import pandas as pd
 from src import prompts
 from src.models import custom_types
-from src.models import genai_model
+from src.models import sensemaker_model_cli
 from src.models.sensemaking_llm import SensemakingLlm
 
 # Global translation cache to avoid re-translating same strings across calls
@@ -143,7 +143,10 @@ def main():
       required=True,
       help="Comma-separated list of columns to translate",
   )
-  parser.add_argument("--gemini_api_key", help="Gemini API key")
+  parser.add_argument(
+      "--gemini_api_key",
+      help="Deprecated: use --api_key or provider env vars.",
+  )
   parser.add_argument(
       "--model_name",
       default="gemini-3.1-flash-lite-preview",
@@ -154,6 +157,7 @@ def main():
       default="en_us",
       help="The language to translate to",
   )
+  sensemaker_model_cli.add_sensemaker_model_options(parser)
   args = parser.parse_args()
 
   logging.basicConfig(level=logging.INFO)
@@ -164,8 +168,10 @@ def main():
     columns = [c.strip() for c in args.columns.split(",")]
 
     # Initialize model
-    model = genai_model.GenaiModel(
-        model_name=args.model_name, api_key=args.gemini_api_key
+    model = sensemaker_model_cli.create_llm_from_args(
+        args,
+        model_name=args.model_name,
+        api_key=args.gemini_api_key,
     )
 
     # Run translation

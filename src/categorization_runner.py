@@ -37,7 +37,7 @@ import re
 import sys
 import time
 from typing import Any, Dict, Iterable, List, Literal, Optional, Union, cast
-from src.models import genai_model
+from src.models import sensemaker_model_cli
 from src import runner_utils, sensemaker
 from src.models import custom_types
 import pandas as pd
@@ -332,6 +332,7 @@ async def main() -> Optional[str]:
       default="gemini-2.5-pro",
       help="The name of the AI model to use. Default: gemini-2.5-pro.",
   )
+  sensemaker_model_cli.add_sensemaker_model_options(parser)
   parser.add_argument(
       "-f",
       "--force_rerun",
@@ -407,7 +408,8 @@ async def main() -> Optional[str]:
 
   stats_log_file = os.path.join(log_dir, "stats.log")
 
-  genai_llm = genai_model.GenaiModel(
+  genai_llm = sensemaker_model_cli.create_llm_from_args(
+      args,
       model_name=args.model_name,
       max_llm_retries=args.max_llm_retries,
       stats_log_file=stats_log_file,

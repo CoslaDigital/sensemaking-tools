@@ -19,7 +19,7 @@ import os
 import pandas as pd
 from src.simulated_jury import simulated_jury
 from src.simulated_jury import sampling_utils
-from src.models import genai_model
+from src.models import sensemaker_model_cli
 from src.social_choice import schulze
 from src.social_choice import proportional_approval_voting
 
@@ -123,6 +123,7 @@ def main():
       type=str,
       help="Column with the true agree rate for error calculation.",
   )
+  sensemaker_model_cli.add_sensemaker_model_options(parser)
   args = parser.parse_args()
 
   if args.batch_size is not None:
@@ -180,7 +181,9 @@ def main():
 
   # --- Run Simulation ---
   approval_scale = simulated_jury.ApprovalScale(args.approval_scale)
-  model = genai_model.GenaiModel(model_name=args.model_name)
+  model = sensemaker_model_cli.create_llm_from_args(
+      args, model_name=args.model_name
+  )
 
   approval_matrix = pd.DataFrame()
 

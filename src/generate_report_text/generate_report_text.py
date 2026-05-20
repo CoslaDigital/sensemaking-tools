@@ -34,7 +34,7 @@ import os
 import pandas as pd
 
 from src import runner_utils
-from src.models import genai_model
+from src.models import sensemaker_model_cli
 from src.models.sensemaking_llm import SensemakingLlm
 from src.generate_report_text import generate_report_text_prompts
 
@@ -221,11 +221,14 @@ async def main():
       '--model_name',
       type=str,
       default='gemini-2.5-pro',
-      help='The name of the Vertex AI model to use. Default: gemini-2.5-pro.',
+      help='The name of the AI model to use. Default: gemini-2.5-pro.',
   )
+  sensemaker_model_cli.add_sensemaker_model_options(parser)
   args = parser.parse_args()
 
-  model = genai_model.GenaiModel(model_name=args.model_name)
+  model = sensemaker_model_cli.create_llm_from_args(
+      args, model_name=args.model_name
+  )
 
   # Load data and additional context
   categorized_quotes_df = pd.read_csv(args.input_csv)
