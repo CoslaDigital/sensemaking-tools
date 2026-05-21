@@ -40,6 +40,10 @@ Use these exact commands when verifying your work. Run them from the project roo
     ```bash
     pip install -e ".[dev]"
     ```
+*   **Health check** (verify LLM adapter before pipeline runs):
+    ```bash
+    python3 -m src.health_check_runner --output_file /tmp/health-check.txt --adapter gemini
+    ```
 *   **Run all tests:**
     ```bash
     pytest

@@ -68,3 +68,7 @@ def moderate() -> None:
 
 def qualtrics_process() -> None:
   _run_module("src.qualtrics.process_qualtrics_output")
+
+
+def health_check() -> None:
+  _run_module("src.health_check_runner")

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cosla-sensemaking-tools"
-version = "0.1.0"
+version = "0.1.1"
 description = "CLI tools for LLM-assisted sensemaking of large-scale conversations (Cosla fork)."
 readme = "README.md"
 license = "Apache-2.0"
@@ -52,6 +52,7 @@ Documentation = "https://github.com/CoslaDigital/sensemaking-tools#readme"
 "Upstream (Jigsaw)" = "https://github.com/Jigsaw-Code/sensemaking-tools"
 
 [project.scripts]
+sensemaking-health-check = "src.console_entrypoints:health_check"
 sensemaking-categorize = "src.console_entrypoints:categorize"
 sensemaking-bridge-scores = "src.console_entrypoints:bridge_scores"
 sensemaking-report-text = "src.console_entrypoints:report_text"

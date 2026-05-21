@@ -58,12 +58,34 @@ python3 -c "import importlib.resources as r; print(r.files('src') / 'default-add
 
 Use that path for `--additional_context_file` / `--additional_context` below, or pass your own file.
 
+**Pro tip:** After configuring your API key, run the health check first to verify your LLM adapter:
+
+```shell
+export GOOGLE_API_KEY="your_api_key_here"
+sensemaking-health-check \
+  --output_file health-check.txt \
+  --adapter gemini \
+  --model_name gemini-2.5-flash-lite-preview
+```
+
+OpenAI-compatible example:
+
+```shell
+sensemaking-health-check \
+  --output_file health-check.txt \
+  --adapter openai-compatible \
+  --provider openai \
+  --model_name gpt-4o-mini \
+  --api_key "$OPENAI_API_KEY"
+```
+
 ### Console commands (PyPI install)
 
 These match `python3 -m src.<module>` when developing from a clone:
 
 | Step (below) | Console command |
 |--------------|-----------------|
+| LLM health check | `sensemaking-health-check` |
 | Topic discovery | `sensemaking-categorize` |
 | Bridging scores | `sensemaking-bridge-scores` |
 | Report text | `sensemaking-report-text` |

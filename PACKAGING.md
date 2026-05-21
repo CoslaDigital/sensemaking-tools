@@ -22,6 +22,7 @@ After install, these commands are on your `PATH` (equivalent to `python3 -m src.
 
 | Command | Purpose |
 |---------|---------|
+| `sensemaking-health-check` | Verify gemini or openai-compatible adapter and model probe |
 | `sensemaking-categorize` | Topic modeling and quote extraction |
 | `sensemaking-bridge-scores` | Constructive quality / bridging scores |
 | `sensemaking-report-text` | Discussion summarization (JSON report) |
@@ -80,7 +81,7 @@ python3 -m venv /tmp/sensemaking-smoke
 
 1. Register at [test.pypi.org](https://test.pypi.org) (separate account from production PyPI).
 2. Create an API token (scope: entire account or project).
-3. Ensure `pyproject.toml` `version` is bumped.
+3. Ensure `pyproject.toml` `version` is bumped (e.g. `0.1.1` adds `sensemaking-health-check`).
 4. `python3 -m build`
 5. `twine upload --repository testpypi dist/*`  
    Use `TWINE_USERNAME=__token__` and `TWINE_PASSWORD=<token>` if not using `~/.pypirc`.
