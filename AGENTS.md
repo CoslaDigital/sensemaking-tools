@@ -8,6 +8,10 @@ This repository shares tools developed by Jigsaw as a proof of concept to help m
 
 More details can be found in the README.md file, along with instructions for running each step of the Sensemaking pipeline.
 
+## PyPI distribution
+
+This fork is published as **`cosla-sensemaking-tools`** on PyPI (CLI-only; the installable Python package name remains `src` for merge compatibility with upstream). Console entry points are defined in [`src/console_entrypoints.py`](src/console_entrypoints.py) and [`pyproject.toml`](pyproject.toml). Release steps are in [PACKAGING.md](PACKAGING.md). The wheel excludes `case_studies/` and `src/report_ui/`.
+
 ## Repository Boundaries & Rules
 - **DO NOT touch the `case_studies/` directory.** Do not read from it, use it for context, or modify any files inside it. This is intended only to document past work, it does not need modification and should not be imported into other files.
 - **Source Code Only:** All active development happens exclusively within the `src/` directory.
@@ -32,9 +36,9 @@ Pipeline code depends on **`SensemakingLlm`** ([`src/models/sensemaking_llm.py`]
 ## Executable Commands
 Use these exact commands when verifying your work. Run them from the project root.
 
-*   **Install dependencies:**
+*   **Install dependencies** (canonical versions in `pyproject.toml`):
     ```bash
-    pip install -r requirements.txt
+    pip install -e ".[dev]"
     ```
 *   **Run all tests:**
     ```bash
@@ -52,4 +56,4 @@ Use these exact commands when verifying your work. Run them from the project roo
 ## Agent Workflow
 1. When asked to create a new file, place it in the appropriate subdirectory within `src/`.
 2. Before presenting code, write unit tests for it using `pytest`.
-3. If your code requires new dependencies, ask the user for permission before adding them to `requirements.txt`.
+3. If your code requires new dependencies, ask the user for permission before adding them to `pyproject.toml` `[project.dependencies]` or `[project.optional-dependencies] dev`.

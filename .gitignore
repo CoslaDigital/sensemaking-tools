@@ -1,4 +1,6 @@
 node_modules
+dist/
+*.egg-info/
 /.eslintcache
 /.idea/
 .DS_Store

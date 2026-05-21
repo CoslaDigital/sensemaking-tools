@@ -1,5 +1,7 @@
 # Sensemaking by Jigsaw \- A Google AI Proof of Concept
 
+> **Cosla fork.** This repository is maintained by [Cosla](https://github.com/CoslaDigital/sensemaking-tools) as a fork of [Jigsaw sensemaking-tools](https://github.com/Jigsaw-Code/sensemaking-tools). It is **not** an official Jigsaw or Google release. Install the CLI from PyPI as **`cosla-sensemaking-tools`** (command-line tools only; no stable `import` API). See [PACKAGING.md](PACKAGING.md) for releases.
+
 This repository shares tools developed by [Jigsaw](http://jigsaw.google) as a proof of concept to help make sense of large-scale online conversations. It demonstrates how Large Language Models (LLMs) like Gemini can be leveraged for such tasks. The code provided here offers a transparent look into Jigsaw's methods for categorization, summarization, and identifying points of agreement and disagreement in free response public opinion research. Our goal in sharing this is to inspire others by providing a potential starting point and useful elements for those tackling similar challenges.
 
 ## Overview
@@ -26,14 +28,20 @@ This guide provides step-by-step instructions for running the Sensemaking tools.
 
 Before you begin, ensure you have the following installed:
 
-* **Python 3** and **pip3**
-* **Node.js** and **NPM** (required for the interactive visualization step)
-* A **Gemini API Key**
+* **Python 3.10+** and **pip**
+* **Node.js** and **NPM** (required for the interactive visualization step; not included in the PyPI wheel)
+* A **Gemini API Key** (or credentials for `--adapter openai-compatible`)
 
-Install the Python dependencies by running:
+**From PyPI (recommended for running pipelines):**
 
 ```shell
-pip3 install -r requirements.txt
+pip install cosla-sensemaking-tools
+```
+
+**From a git clone (development):**
+
+```shell
+pip install -e ".[dev]"
 ```
 
 Confirm all tests pass by running:
@@ -41,6 +49,28 @@ Confirm all tests pass by running:
 ```shell
 python3 -m pytest src/
 ```
+
+**Default additional context** (after PyPI install):
+
+```shell
+python3 -c "import importlib.resources as r; print(r.files('src') / 'default-additional-context.md')"
+```
+
+Use that path for `--additional_context_file` / `--additional_context` below, or pass your own file.
+
+### Console commands (PyPI install)
+
+These match `python3 -m src.<module>` when developing from a clone:
+
+| Step (below) | Console command |
+|--------------|-----------------|
+| Topic discovery | `sensemaking-categorize` |
+| Bridging scores | `sensemaking-bridge-scores` |
+| Report text | `sensemaking-report-text` |
+| Proposition generation | `sensemaking-propositions` |
+| Jury refinement | `sensemaking-refine-propositions` |
+| Proposition simplification | `sensemaking-simplify-propositions` |
+| Standalone jury | `sensemaking-jury` |
 
 ### Step-by-Step Pipeline
 

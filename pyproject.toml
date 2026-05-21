@@ -1,8 +1,100 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cosla-sensemaking-tools"
+version = "0.1.0"
+description = "CLI tools for LLM-assisted sensemaking of large-scale conversations (Cosla fork)."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [{ name = "Cosla" }]
+keywords = [
+  "sensemaking",
+  "civic-tech",
+  "categorization",
+  "summarization",
+  "public-opinion",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+  "pandas==2.3.1",
+  "google-genai==1.62.0",
+  "openai>=1.0.0",
+  "google-cloud-aiplatform[evaluation]==1.133.0",
+  "google-api-python-client==2.177.0",
+  "google-cloud-dlp==3.31.0",
+  "more_itertools==10.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pre_commit==4.2.0",
+  "pytest==8.4.1",
+  "pytest-asyncio==1.0.0",
+  "pyink==25.12.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/CoslaDigital/sensemaking-tools"
+Repository = "https://github.com/CoslaDigital/sensemaking-tools"
+Documentation = "https://github.com/CoslaDigital/sensemaking-tools#readme"
+"Upstream (Jigsaw)" = "https://github.com/Jigsaw-Code/sensemaking-tools"
+
+[project.scripts]
+sensemaking-categorize = "src.console_entrypoints:categorize"
+sensemaking-bridge-scores = "src.console_entrypoints:bridge_scores"
+sensemaking-report-text = "src.console_entrypoints:report_text"
+sensemaking-propositions = "src.console_entrypoints:propositions"
+sensemaking-refine-propositions = "src.console_entrypoints:refine_propositions"
+sensemaking-simplify-propositions = "src.console_entrypoints:simplify_propositions"
+sensemaking-jury = "src.console_entrypoints:jury"
+sensemaking-opinion-learning = "src.console_entrypoints:opinion_learning"
+sensemaking-translate-csv = "src.console_entrypoints:translate_csv"
+sensemaking-evals = "src.console_entrypoints:evals"
+sensemaking-moderate = "src.console_entrypoints:moderate"
+sensemaking-qualtrics-process = "src.console_entrypoints:qualtrics_process"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+exclude = [
+  "src/report_ui",
+]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/default-additional-context.md" = "src/default-additional-context.md"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/case_studies",
+  "/final_out",
+  "/node_modules",
+  "/src/report_ui",
+]
+
+[tool.hatch.build]
+exclude = [
+  "case_studies/**",
+  "final_out/**",
+  "node_modules/**",
+  "src/report_ui/**",
+]
+
 [tool.pyink]
-# Formatting configuration to follow Google style-guide
 line-length = 80
 unstable = true
 pyink-indentation = 2
 pyink-use-majority-quotes = true
+
 [tool.pytest.ini_options]
 pythonpath = "."
