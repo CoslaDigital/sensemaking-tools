@@ -25,6 +25,7 @@ Pipeline code depends on **`SensemakingLlm`** ([`src/models/sensemaking_llm.py`]
 - **NEVER** import `google-generativeai`, `vertexai`, `litellm`, `openai`, or similar directly in feature code under `src/` (outside `src/models/`).
 - **Construct backends** via [`create_llm_from_args`](src/models/sensemaker_model_cli.py) (or [`create_sensemaking_llm`](src/models/llm_factory.py) with a parsed `SensemakerModelConfig`) from CLI options in [`sensemaker_model_cli.py`](src/models/sensemaker_model_cli.py):
   - `--adapter gemini` (default) → [`GenaiModel`](src/models/genai_model.py) / `GOOGLE_API_KEY`
+  - `--adapter vertex` + `--vertex_project` (or `GOOGLE_CLOUD_PROJECT`) → [`GenaiModel`](src/models/genai_model.py) via Vertex AI / ADC
   - `--adapter openai-compatible` + `--provider openai|openrouter|mistral` → [`OpenAiCompatLlm`](src/models/openai_compat_llm.py)
 - Runners should call `add_sensemaker_model_options(parser)` then `create_llm_from_args(args, model_name=...)`. Legacy `--gemini_api_key` is still accepted as an API key alias.
 - *(Agent Note: Review `genai_model.py` and `openai_compat_llm.py` for completion contracts, retries, and structured output behavior.)*

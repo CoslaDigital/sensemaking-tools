@@ -44,6 +44,57 @@ class _FakeLlm:
 
 class HealthCheckRunnerTest(unittest.TestCase):
 
+  def test_test_name_for_adapter_vertex(self):
+    self.assertEqual(
+        health_check_runner._test_name_for_adapter("vertex"),
+        "Vertex AI Health Check",
+    )
+
+  def test_resolve_model_name_vertex_default(self):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_name", default=None)
+    sensemaker_model_cli.add_sensemaker_model_options(parser)
+    args = parser.parse_args([
+        "--adapter", "vertex",
+        "--vertex_project", "my-project",
+    ])
+    opts = sensemaker_model_cli.parse_sensemaker_model_opts(args)
+    name = health_check_runner._resolve_model_name(args, opts)
+    self.assertEqual(name, health_check_runner.DEFAULT_GEMINI_HEALTH_CHECK_MODEL)
+
+  def test_startup_lines_vertex(self):
+    opts = sensemaker_model_cli.SensemakerModelConfig(
+        adapter="vertex",
+        provider=None,
+        base_url="",
+        model_name="gemini-2.5-flash",
+        api_key=None,
+        openrouter_site_url=None,
+        openrouter_app_name=None,
+        vertex_project="sensemaker-466109",
+        vertex_location="global",
+    )
+    lines = health_check_runner._startup_lines(opts, "gemini-2.5-flash")
+    self.assertEqual(
+        lines[0],
+        "Starting health check for Vertex AI (project: sensemaker-466109)...",
+    )
+    self.assertEqual(lines[1], "Location: global")
+    self.assertNotIn("openai-compatible", "\n".join(lines))
+
+  def test_startup_lines_openai_compatible(self):
+    opts = sensemaker_model_cli.SensemakerModelConfig(
+        adapter="openai-compatible",
+        provider="openai",
+        base_url="https://api.openai.com/v1",
+        model_name="gpt-4o-mini",
+        api_key="key",
+        openrouter_site_url=None,
+        openrouter_app_name=None,
+    )
+    lines = health_check_runner._startup_lines(opts, "gpt-4o-mini")
+    self.assertIn("openai (openai-compatible)", lines[0])
+
   def test_run_health_check_pass(self):
     llm = _FakeLlm({"text": "Health check successful", "error": None})
     result = asyncio.run(

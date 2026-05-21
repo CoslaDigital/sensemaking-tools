@@ -30,7 +30,7 @@ Before you begin, ensure you have the following installed:
 
 * **Python 3.10+** and **pip**
 * **Node.js** and **NPM** (required for the interactive visualization step; not included in the PyPI wheel)
-* A **Gemini API Key** (or credentials for `--adapter openai-compatible`)
+* A **Gemini API Key**, **Vertex AI** credentials (Application Default Credentials), or credentials for `--adapter openai-compatible`
 
 **From PyPI (recommended for running pipelines):**
 
@@ -65,6 +65,17 @@ export GOOGLE_API_KEY="your_api_key_here"
 sensemaking-health-check \
   --output_file health-check.txt \
   --adapter gemini \
+  --model_name gemini-2.5-flash-lite-preview
+```
+
+Vertex AI example (uses Application Default Credentials):
+
+```shell
+sensemaking-health-check \
+  --output_file health-check.txt \
+  --adapter vertex \
+  --vertex_project YOUR_GCP_PROJECT \
+  --vertex_location global \
   --model_name gemini-2.5-flash-lite-preview
 ```
 
@@ -152,11 +163,13 @@ python3 -m src.categorization_runner \
 
 These flags work on LLM-backed pipeline steps: `categorization_runner`, `get_bridging_scores` (when `--scorer_type GEMINI`), `generate_report_text`, `propositions.proposition_generator`, `proposition_refinement.main`, `proposition_simplification_runner`, `simulated_jury.main`, `evals.evals`, `translate_csv`, and `opinion_learning_runner`. If you omit `--adapter`, the default is **`gemini`**.
 
-* `--adapter <gemini|openai-compatible>` — default: `gemini`
+* `--adapter <gemini|vertex|openai-compatible>` — default: `gemini`
+* `--vertex_project <id>` — required for `vertex` (or set `GOOGLE_CLOUD_PROJECT`)
+* `--vertex_location <region>` — optional for `vertex`; default `global` (or `GOOGLE_CLOUD_LOCATION`)
 * `--provider <openai|openrouter|mistral>` — required when `--adapter` is `openai-compatible`
 * `--base_url <url>` — optional override (defaults depend on provider)
 * `--model_name <model>` — model id for the selected adapter
-* `--api_key <token>` — optional; otherwise uses `GOOGLE_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or `MISTRAL_API_KEY`
+* `--api_key <token>` — optional; otherwise uses `GOOGLE_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or `MISTRAL_API_KEY` (not used for `vertex`)
 
 OpenRouter example:
 

@@ -12,12 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Health check for Sensemaking LLM adapters (gemini / openai-compatible).
+"""Health check for Sensemaking LLM adapters (gemini / vertex / openai-compatible).
 
 Example usage (Gemini):
   python3 -m src.health_check_runner \\
     --output_file health-check.txt \\
     --adapter gemini \\
+    --model_name gemini-2.5-flash-lite-preview
+
+Example usage (Vertex AI):
+  python3 -m src.health_check_runner \\
+    --output_file health-check.txt \\
+    --adapter vertex \\
+    --vertex_project YOUR_GCP_PROJECT \\
+    --vertex_location global \\
     --model_name gemini-2.5-flash-lite-preview
 
 Example usage (OpenAI-compatible):
@@ -65,6 +73,8 @@ class HealthCheckResult:
 def _test_name_for_adapter(adapter: str) -> str:
   if adapter == "gemini":
     return "Gemini Health Check"
+  if adapter == "vertex":
+    return "Vertex AI Health Check"
   return "OpenAI-Compatible Health Check"
 
 
@@ -122,8 +132,10 @@ async def run_health_check(
     )
   except Exception as e:
     hint = (
-        "Check GOOGLE_API_KEY or --api_key for gemini; for openai-compatible"
-        " check --provider, --api_key, --base_url, and --model_name."
+        "Check GOOGLE_API_KEY or --api_key for gemini; for vertex check"
+        " --vertex_project, ADC credentials, and --model_name; for"
+        " openai-compatible check --provider, --api_key, --base_url, and"
+        " --model_name."
     )
     if adapter == "openai-compatible" and provider:
       hint = (
@@ -151,6 +163,11 @@ def format_report(
       f"Timestamp: {datetime.datetime.now(datetime.timezone.utc).isoformat()}",
       f"Adapter: {model_opts.adapter}",
   ]
+  if model_opts.adapter == "vertex":
+    project = sensemaker_model_cli.resolve_vertex_project(model_opts)
+    location = sensemaker_model_cli.resolve_vertex_location(model_opts)
+    lines.append(f"Vertex project: {project}")
+    lines.append(f"Vertex location: {location}")
   if model_opts.provider:
     lines.append(f"Provider: {model_opts.provider}")
   if model_opts.base_url:
@@ -190,9 +207,34 @@ def _resolve_model_name(
 ) -> str:
   if args.model_name:
     return args.model_name
-  if model_opts.adapter == "gemini":
+  if model_opts.adapter in ("gemini", "vertex"):
     return DEFAULT_GEMINI_HEALTH_CHECK_MODEL
   raise ValueError("--model_name is required when --adapter is openai-compatible.")
+
+
+def _startup_lines(
+    model_opts: sensemaker_model_cli.SensemakerModelConfig,
+    model_name: str,
+) -> list[str]:
+  """Returns console lines printed before the LLM probe runs."""
+  if model_opts.adapter == "gemini":
+    return [
+        "Starting health check for Gemini...",
+        f"Model: {model_name}",
+    ]
+  if model_opts.adapter == "vertex":
+    project = sensemaker_model_cli.resolve_vertex_project(model_opts)
+    location = sensemaker_model_cli.resolve_vertex_location(model_opts)
+    return [
+        f"Starting health check for Vertex AI (project: {project})...",
+        f"Location: {location}",
+        f"Model: {model_name}",
+    ]
+  return [
+      f"Starting health check for {model_opts.provider} (openai-compatible)...",
+      f"Base URL: {model_opts.base_url}",
+      f"Model: {model_name}",
+  ]
 
 
 async def async_main(args: argparse.Namespace) -> int:
@@ -201,15 +243,8 @@ async def async_main(args: argparse.Namespace) -> int:
   sensemaker_model_cli.validate_sensemaker_model_opts(model_opts)
   model_name = _resolve_model_name(args, model_opts)
 
-  if model_opts.adapter == "gemini":
-    print("Starting health check for Gemini...")
-    print(f"Model: {model_name}")
-  else:
-    print(
-        f"Starting health check for {model_opts.provider} (openai-compatible)..."
-    )
-    print(f"Base URL: {model_opts.base_url}")
-    print(f"Model: {model_name}")
+  for line in _startup_lines(model_opts, model_name):
+    print(line)
 
   llm = sensemaker_model_cli.create_llm_from_args(args, model_name=model_name)
   result = await run_health_check(
@@ -254,7 +289,7 @@ def main() -> None:
       type=str,
       default=None,
       help=(
-          "Model id for the probe. Default for gemini:"
+          "Model id for the probe. Default for gemini and vertex:"
           f" {DEFAULT_GEMINI_HEALTH_CHECK_MODEL}. Required for"
           " openai-compatible."
       ),

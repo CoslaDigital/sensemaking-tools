@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Shared CLI options for selecting SensemakingLlm backends (gemini / openai-compatible)."""
+"""Shared CLI options for selecting SensemakingLlm backends."""
 
 from __future__ import annotations
 
@@ -24,10 +24,11 @@ from urllib.parse import urlparse
 
 from src.models.sensemaking_llm import SensemakingLlm
 
-SensemakerAdapter = Literal["gemini", "openai-compatible"]
+SensemakerAdapter = Literal["gemini", "vertex", "openai-compatible"]
 OpenAiCompatProvider = Literal["openai", "openrouter", "mistral"]
 
 DEFAULT_ADAPTER: SensemakerAdapter = "gemini"
+DEFAULT_VERTEX_LOCATION = "global"
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_MISTRAL_BASE_URL = "https://api.mistral.ai/v1"
@@ -56,6 +57,8 @@ class SensemakerModelConfig:
   api_key: str | None
   openrouter_site_url: str | None
   openrouter_app_name: str | None
+  vertex_project: str | None = None
+  vertex_location: str | None = None
 
 
 def normalize_base_url(url: str) -> str:
@@ -68,10 +71,13 @@ def normalize_adapter(value: str | None) -> SensemakerAdapter:
   s = (value or DEFAULT_ADAPTER).lower().strip()
   if s == "gemini":
     return "gemini"
+  if s == "vertex":
+    return "vertex"
   if s == "openai-compatible":
     return "openai-compatible"
   raise ValueError(
-      f'Invalid --adapter "{value}". Use "gemini" or "openai-compatible".'
+      f'Invalid --adapter "{value}". Use "gemini", "vertex", or'
+      ' "openai-compatible".'
   )
 
 
@@ -100,6 +106,28 @@ def get_base_url(
   return ""
 
 
+def _strip_optional_str(value: str | None) -> str | None:
+  if value is None:
+    return None
+  s = str(value).strip()
+  return s or None
+
+
+def resolve_vertex_project(opts: SensemakerModelConfig) -> str | None:
+  """Resolves GCP project id from CLI or GOOGLE_CLOUD_PROJECT."""
+  if opts.vertex_project:
+    return opts.vertex_project
+  return _strip_optional_str(os.getenv("GOOGLE_CLOUD_PROJECT"))
+
+
+def resolve_vertex_location(opts: SensemakerModelConfig) -> str:
+  """Resolves Vertex region from CLI or GOOGLE_CLOUD_LOCATION."""
+  loc = opts.vertex_location or _strip_optional_str(
+      os.getenv("GOOGLE_CLOUD_LOCATION")
+  )
+  return loc or DEFAULT_VERTEX_LOCATION
+
+
 def add_sensemaker_model_options(parser: argparse.ArgumentParser) -> None:
   """Registers shared LLM adapter flags on an ArgumentParser."""
   parser.add_argument(
@@ -107,7 +135,8 @@ def add_sensemaker_model_options(parser: argparse.ArgumentParser) -> None:
       type=str,
       default=DEFAULT_ADAPTER,
       help=(
-          'LLM adapter: "gemini" (default, Google AI Studio) or'
+          'LLM adapter: "gemini" (default, Google AI Studio), "vertex"'
+          ' (Vertex AI via Application Default Credentials), or'
           ' "openai-compatible".'
       ),
   )
@@ -118,6 +147,24 @@ def add_sensemaker_model_options(parser: argparse.ArgumentParser) -> None:
       help=(
           'Provider preset when --adapter is openai-compatible: "openai",'
           ' "openrouter", or "mistral".'
+      ),
+  )
+  parser.add_argument(
+      "--vertex_project",
+      type=str,
+      default=None,
+      help=(
+          "GCP project id when --adapter is vertex. Defaults to"
+          " GOOGLE_CLOUD_PROJECT."
+      ),
+  )
+  parser.add_argument(
+      "--vertex_location",
+      type=str,
+      default=None,
+      help=(
+          "Vertex AI region when --adapter is vertex. Defaults to"
+          f' "{DEFAULT_VERTEX_LOCATION}" or GOOGLE_CLOUD_LOCATION.'
       ),
   )
   parser.add_argument(
@@ -164,11 +211,15 @@ def parse_sensemaker_model_opts(args: argparse.Namespace) -> SensemakerModelConf
       api_key=api_key,
       openrouter_site_url=getattr(args, "openrouter_site_url", None),
       openrouter_app_name=getattr(args, "openrouter_app_name", None),
+      vertex_project=_strip_optional_str(getattr(args, "vertex_project", None)),
+      vertex_location=_strip_optional_str(getattr(args, "vertex_location", None)),
   )
 
 
 def resolve_api_key(opts: SensemakerModelConfig) -> str | None:
   """Resolves API key from CLI or environment."""
+  if opts.adapter == "vertex":
+    return None
   if opts.api_key:
     return opts.api_key
   if opts.adapter == "gemini":
@@ -180,6 +231,24 @@ def resolve_api_key(opts: SensemakerModelConfig) -> str | None:
 
 def validate_sensemaker_model_opts(opts: SensemakerModelConfig) -> None:
   """Raises ValueError if options are inconsistent or incomplete."""
+  if opts.adapter == "vertex":
+    if opts.provider:
+      raise ValueError(
+          "--provider is not used when --adapter is vertex."
+      )
+    if not resolve_vertex_project(opts):
+      raise ValueError(
+          "--vertex_project is required when --adapter is vertex (or set"
+          " GOOGLE_CLOUD_PROJECT)."
+      )
+    return
+
+  if opts.vertex_project or opts.vertex_location:
+    raise ValueError(
+        "--vertex_project and --vertex_location are only valid when"
+        ' --adapter is "vertex".'
+    )
+
   if opts.adapter == "openai-compatible":
     if not opts.provider:
       raise ValueError(
@@ -247,7 +316,7 @@ def create_llm_from_args(
   """
   opts = parse_sensemaker_model_opts(args)
   legacy_key = resolve_cli_api_key_from_args(args, api_key)
-  if legacy_key:
+  if legacy_key and opts.adapter != "vertex":
     opts = replace(opts, api_key=legacy_key)
   effective_model = model_name or opts.model_name
   if getattr(args, "model_name", None) and not effective_model:

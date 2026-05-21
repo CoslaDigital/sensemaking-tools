@@ -32,6 +32,31 @@ class MockClientError(genai_model.google_genai_errors.ClientError):
 @mock.patch('google.genai.Client')
 class GenaiModelInitTest(unittest.TestCase):
 
+  def test_init_vertex_client(self, mock_genai_client):
+    """Tests Vertex AI client uses vertexai=True and project/location."""
+    genai_model.GenaiModel(
+        model_name='test_model',
+        vertex_project='my-project',
+        vertex_location='us-central1',
+    )
+    mock_genai_client.assert_called_once_with(
+        vertexai=True,
+        project='my-project',
+        location='us-central1',
+    )
+
+  def test_init_vertex_default_location_global(self, mock_genai_client):
+    """Tests Vertex location defaults to global."""
+    genai_model.GenaiModel(
+        model_name='test_model',
+        vertex_project='my-project',
+    )
+    mock_genai_client.assert_called_once_with(
+        vertexai=True,
+        project='my-project',
+        location='global',
+    )
+
   def test_init_safety_filters_off(self, mock_genai_client):
     """Tests that safety filters are set to BLOCK_NONE when safety_filters_on=False."""
     model = genai_model.GenaiModel(

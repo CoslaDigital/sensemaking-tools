@@ -21,6 +21,8 @@ from src.models.openai_compat_llm import OpenAiCompatLlm
 from src.models.sensemaker_model_cli import (
     SensemakerModelConfig,
     resolve_api_key,
+    resolve_vertex_location,
+    resolve_vertex_project,
 )
 from src.models.sensemaking_llm import SensemakingLlm
 
@@ -41,6 +43,21 @@ def create_sensemaking_llm(
   Returns:
     GenaiModel or OpenAiCompatLlm implementing SensemakingLlm.
   """
+  if opts.adapter == "vertex":
+    project = resolve_vertex_project(opts)
+    if not project:
+      raise ValueError(
+          "Vertex project is required. Pass --vertex_project or set"
+          " GOOGLE_CLOUD_PROJECT."
+      )
+    return genai_model.GenaiModel(
+        model_name=opts.model_name or "gemini-2.5-pro",
+        vertex_project=project,
+        vertex_location=resolve_vertex_location(opts),
+        max_llm_retries=max_llm_retries,
+        stats_log_file=stats_log_file,
+    )
+
   if opts.adapter == "gemini":
     api_key = resolve_api_key(opts)
     return genai_model.GenaiModel(

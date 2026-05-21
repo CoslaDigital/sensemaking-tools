@@ -56,6 +56,104 @@ class SensemakerModelCliTest(unittest.TestCase):
     url = sensemaker_model_cli.get_base_url("openai-compatible", "mistral", None)
     self.assertEqual(url, sensemaker_model_cli.DEFAULT_MISTRAL_BASE_URL)
 
+  def test_normalize_adapter_vertex(self):
+    self.assertEqual(
+        sensemaker_model_cli.normalize_adapter("vertex"), "vertex"
+    )
+
+  def test_vertex_requires_project(self):
+    opts = sensemaker_model_cli.SensemakerModelConfig(
+        adapter="vertex",
+        provider=None,
+        base_url="",
+        model_name="gemini-2.5-pro",
+        api_key=None,
+        openrouter_site_url=None,
+        openrouter_app_name=None,
+        vertex_project=None,
+        vertex_location=None,
+    )
+    with self.assertRaises(ValueError) as ctx:
+      sensemaker_model_cli.validate_sensemaker_model_opts(opts)
+    self.assertIn("vertex_project", str(ctx.exception))
+
+  def test_vertex_rejects_provider(self):
+    opts = sensemaker_model_cli.SensemakerModelConfig(
+        adapter="vertex",
+        provider="openai",
+        base_url="",
+        model_name="gemini-2.5-pro",
+        api_key=None,
+        openrouter_site_url=None,
+        openrouter_app_name=None,
+        vertex_project="my-project",
+        vertex_location="global",
+    )
+    with self.assertRaises(ValueError) as ctx:
+      sensemaker_model_cli.validate_sensemaker_model_opts(opts)
+    self.assertIn("provider", str(ctx.exception))
+
+  def test_gemini_rejects_vertex_flags(self):
+    parser = argparse.ArgumentParser()
+    sensemaker_model_cli.add_sensemaker_model_options(parser)
+    args = parser.parse_args([
+        "--adapter", "gemini",
+        "--vertex_project", "my-project",
+    ])
+    opts = sensemaker_model_cli.parse_sensemaker_model_opts(args)
+    with self.assertRaises(ValueError) as ctx:
+      sensemaker_model_cli.validate_sensemaker_model_opts(opts)
+    self.assertIn("vertex", str(ctx.exception))
+
+  def test_resolve_vertex_project_from_env(self):
+    with mock.patch.dict(
+        os.environ, {"GOOGLE_CLOUD_PROJECT": "env-project"}, clear=False
+    ):
+      opts = sensemaker_model_cli.SensemakerModelConfig(
+          adapter="vertex",
+          provider=None,
+          base_url="",
+          model_name=None,
+          api_key=None,
+          openrouter_site_url=None,
+          openrouter_app_name=None,
+          vertex_project=None,
+          vertex_location=None,
+      )
+      self.assertEqual(
+          sensemaker_model_cli.resolve_vertex_project(opts), "env-project"
+      )
+
+  def test_resolve_vertex_location_defaults_global(self):
+    opts = sensemaker_model_cli.SensemakerModelConfig(
+        adapter="vertex",
+        provider=None,
+        base_url="",
+        model_name=None,
+        api_key=None,
+        openrouter_site_url=None,
+        openrouter_app_name=None,
+        vertex_project="p",
+        vertex_location=None,
+    )
+    self.assertEqual(
+        sensemaker_model_cli.resolve_vertex_location(opts), "global"
+    )
+
+  def test_vertex_resolve_api_key_is_none(self):
+    opts = sensemaker_model_cli.SensemakerModelConfig(
+        adapter="vertex",
+        provider=None,
+        base_url="",
+        model_name="gemini-2.5-pro",
+        api_key="ignored",
+        openrouter_site_url=None,
+        openrouter_app_name=None,
+        vertex_project="my-project",
+        vertex_location="us-central1",
+    )
+    self.assertIsNone(sensemaker_model_cli.resolve_api_key(opts))
+
   def test_openai_compatible_requires_provider(self):
     opts = sensemaker_model_cli.SensemakerModelConfig(
         adapter="openai-compatible",
@@ -125,6 +223,24 @@ class SensemakerModelCliTest(unittest.TestCase):
     model = sensemaker_model_cli.create_llm_from_args(args)
     self.assertIsInstance(model, OpenAiCompatLlm)
     self.assertEqual(model.provider, "openrouter")
+
+  @mock.patch("google.genai.Client")
+  def test_create_llm_from_args_vertex(self, mock_genai_client):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_name", default="gemini-2.5-pro")
+    sensemaker_model_cli.add_sensemaker_model_options(parser)
+    args = parser.parse_args([
+        "--adapter", "vertex",
+        "--vertex_project", "my-gcp-project",
+        "--vertex_location", "global",
+    ])
+    model = sensemaker_model_cli.create_llm_from_args(args)
+    self.assertIsInstance(model, genai_model.GenaiModel)
+    mock_genai_client.assert_called_once_with(
+        vertexai=True,
+        project="my-gcp-project",
+        location="global",
+    )
 
   @mock.patch.dict("os.environ", {"OPENROUTER_API_KEY": "or-env"}, clear=False)
   def test_create_llm_from_args_openrouter(self):

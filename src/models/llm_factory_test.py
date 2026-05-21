@@ -24,6 +24,50 @@ from src.models.sensemaker_model_cli import SensemakerModelConfig
 class LlmFactoryTest(unittest.TestCase):
 
   @mock.patch.dict("os.environ", {"GOOGLE_API_KEY": "g-key"}, clear=False)
+  @mock.patch("google.genai.Client")
+  def test_create_vertex(self, mock_genai_client):
+    opts = SensemakerModelConfig(
+        adapter="vertex",
+        provider=None,
+        base_url="",
+        model_name="gemini-2.5-pro",
+        api_key=None,
+        openrouter_site_url=None,
+        openrouter_app_name=None,
+        vertex_project="gcp-proj",
+        vertex_location="global",
+    )
+    model = llm_factory.create_sensemaking_llm(opts)
+    self.assertIsInstance(model, genai_model.GenaiModel)
+    mock_genai_client.assert_called_once_with(
+        vertexai=True,
+        project="gcp-proj",
+        location="global",
+    )
+
+  @mock.patch.dict("os.environ", {"GOOGLE_CLOUD_PROJECT": "env-proj"}, clear=False)
+  @mock.patch("google.genai.Client")
+  def test_create_vertex_project_from_env(self, mock_genai_client):
+    opts = SensemakerModelConfig(
+        adapter="vertex",
+        provider=None,
+        base_url="",
+        model_name=None,
+        api_key=None,
+        openrouter_site_url=None,
+        openrouter_app_name=None,
+        vertex_project=None,
+        vertex_location=None,
+    )
+    model = llm_factory.create_sensemaking_llm(opts)
+    self.assertIsInstance(model, genai_model.GenaiModel)
+    mock_genai_client.assert_called_once_with(
+        vertexai=True,
+        project="env-proj",
+        location="global",
+    )
+
+  @mock.patch.dict("os.environ", {"GOOGLE_API_KEY": "g-key"}, clear=False)
   def test_create_gemini(self):
     opts = SensemakerModelConfig(
         adapter="gemini",

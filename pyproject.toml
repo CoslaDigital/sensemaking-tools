@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cosla-sensemaking-tools"
-version = "0.1.1"
+version = "0.1.2"
 description = "CLI tools for LLM-assisted sensemaking of large-scale conversations (Cosla fork)."
 readme = "README.md"
 license = "Apache-2.0"

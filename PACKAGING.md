@@ -22,7 +22,7 @@ After install, these commands are on your `PATH` (equivalent to `python3 -m src.
 
 | Command | Purpose |
 |---------|---------|
-| `sensemaking-health-check` | Verify gemini or openai-compatible adapter and model probe |
+| `sensemaking-health-check` | Verify gemini, vertex, or openai-compatible adapter and model probe |
 | `sensemaking-categorize` | Topic modeling and quote extraction |
 | `sensemaking-bridge-scores` | Constructive quality / bridging scores |
 | `sensemaking-report-text` | Discussion summarization (JSON report) |
@@ -51,9 +51,10 @@ Pass that path to `--additional_context_file` / `--additional_context` flags whe
 LLM adapters (see README):
 
 - **Gemini (default):** `GOOGLE_API_KEY`
+- **Vertex AI:** Application Default Credentials; `--vertex_project` or `GOOGLE_CLOUD_PROJECT`; optional `--vertex_location` or `GOOGLE_CLOUD_LOCATION` (default `global`)
 - **OpenAI-compatible:** `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or `MISTRAL_API_KEY` depending on `--provider`
 
-Use `--adapter`, `--provider`, `--model_name`, and `--api_key` on supported commands (see README).
+Use `--adapter`, `--provider`, `--model_name`, `--vertex_project`, `--vertex_location`, and `--api_key` on supported commands (see README).
 
 ## Local build (maintainers)
 
