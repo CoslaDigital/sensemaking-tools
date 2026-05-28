@@ -1,7 +1,10 @@
 const { Command } = require("commander");
 const { copyFileSync, writeFileSync } = require("fs");
 const path = require("path");
-const { exec, ExecException } = require("child_process");
+const { exec } = require("child_process");
+const { promisify } = require("util");
+
+const execAsync = promisify(exec);
 
 async function main(): Promise<void> {
   // Parse command line arguments.
@@ -38,17 +41,24 @@ async function main(): Promise<void> {
   copyFileSync(options["comments"], path.join(baseOutputPath, "/comments.json"));
   writeFileSync(path.join(baseOutputPath, "/metadata.json"), JSON.stringify(reportMetadata, null, 2));
 
-  await exec("npm run build", (error: typeof ExecException | null, stdout: string, stderr: string) => {
-    if(error) {
-      console.error(`Build failed: ${error.message}`);
-      return;
+  try {
+    // Ensure local workspace dependency has dist artifacts before Angular build.
+    const vizLibraryPath = path.resolve(__dirname, "../visualization-library");
+    const vizBuildResult = await execAsync("npm run build", { cwd: vizLibraryPath });
+    if (vizBuildResult.stderr) {
+      console.error(`Visualization build warnings: ${vizBuildResult.stderr}`);
     }
-    if(stderr) {
-      console.error(`Build errors/warnings: ${stderr}`);
+
+    const webUiBuildResult = await execAsync("npm run build");
+    if (webUiBuildResult.stderr) {
+      console.error(`Build errors/warnings: ${webUiBuildResult.stderr}`);
     }
-    console.log(`Build output: ${stdout}`);
+    console.log(`Build output: ${webUiBuildResult.stdout}`);
     console.log("Build complete");
-  });
+  } catch (error: any) {
+    console.error(`Build failed: ${error.message}`);
+    process.exit(1);
+  }
 }
 
 main();
