@@ -1,0 +1,38 @@
+{
+  "name": "@cosla/sensemaking-report-ui",
+  "version": "0.1.0",
+  "description": "Lightweight standalone HTML report builder without Angular.",
+  "type": "module",
+  "main": "build.js",
+  "bin": {
+    "sensemaking-report-ui": "./cli.js"
+  },
+  "files": [
+    "build.js",
+    "cli.js",
+    "data.js",
+    "smoke.js",
+    "README.md",
+    "src/**/*",
+    "fixtures/**/*"
+  ],
+  "scripts": {
+    "build": "node build.js",
+    "inline": "node build.js inline",
+    "smoke": "node smoke.js"
+  },
+  "keywords": [
+    "sensemaking",
+    "report",
+    "html",
+    "standalone"
+  ],
+  "author": "CoslaDigital",
+  "license": "ISC",
+  "dependencies": {
+    "@cosla/sensemaker-visualizations": "^1.0.48",
+    "inline-source": "^8.0.3",
+    "marked": "^15.0.3",
+    "mustache": "^4.2.0"
+  }
+}

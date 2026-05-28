@@ -1,0 +1,19 @@
+[
+  {
+    "id": "m1",
+    "text": "We should add protected cycling lanes on major routes.",
+    "votes": {
+      "g1": { "agreeCount": 3, "disagreeCount": 1, "passCount": 1 }
+    },
+    "passRate": 0.2,
+    "agreeRate": 0.6,
+    "disagreeRate": 0.2,
+    "isHighAlignment": true,
+    "highAlignmentScore": 0.6,
+    "isLowAlignment": false,
+    "lowAlignmentScore": 0.2,
+    "isHighUncertainty": false,
+    "highUncertaintyScore": 0.2,
+    "isFilteredOut": false
+  }
+]

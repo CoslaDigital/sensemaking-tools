@@ -1,0 +1,25 @@
+[
+  {
+    "name": "Housing",
+    "commentCount": 3,
+    "voteCount": 21,
+    "relativeAlignment": "higher alignment",
+    "relativeEngagement": "higher engagement",
+    "subtopicStats": [
+      {
+        "name": "Affordable housing",
+        "commentCount": 2,
+        "voteCount": 14,
+        "relativeAlignment": "higher alignment",
+        "relativeEngagement": "higher engagement"
+      },
+      {
+        "name": "Zoning",
+        "commentCount": 1,
+        "voteCount": 7,
+        "relativeAlignment": "lower alignment",
+        "relativeEngagement": "lower engagement"
+      }
+    ]
+  }
+]

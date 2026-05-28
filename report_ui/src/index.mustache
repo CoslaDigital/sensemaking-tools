@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{reportTitle}}</title>
+    <link rel="stylesheet" href="viz.css" inline />
+    <link rel="stylesheet" href="style.css" inline />
+  </head>
+  <body>
+    <header class="header">
+      <h1 id="top">{{reportTitle}}</h1>
+      <button type="button" data-share="" class="button subtle">Share report</button>
+    </header>
+    <main class="report-main">
+      <nav class="nav" aria-label="Report navigation">
+        <button type="button" class="button icon-button-fancy" data-scroll="report-overview">
+          <span class="nav-icon" aria-hidden="true">★</span>
+          Report Overview
+        </button>
+        <div class="nav-label">Report Topics</div>
+        <div id="topic-nav" class="accordion-nav"></div>
+      </nav>
+      <section class="report-content">
+        <section class="card" id="report-overview">
+          <h2>About this report</h2>
+          <p id="overview-summary"></p>
+          <p id="overview-definitions"></p>
+          <div class="metrics">
+            <div><strong id="metric-statements"></strong><span>Total statements</span></div>
+            <div><strong id="metric-votes"></strong><span>Total votes</span></div>
+            <div><strong id="metric-topics"></strong><span>Topics captured</span></div>
+          </div>
+        </section>
+
+        <section class="card" id="Conversation-Overview">
+          <h2>Conversation overview</h2>
+          <p>
+            Below is a high level overview of the topics discussed in the conversation, as well as the percentage of statements categorized under each topic. Note that the percentages may add up to greater than 100% when statements fall under more than one topic.
+          </p>
+          <div class="overview-visualization">
+            <sensemaker-chart
+              id="conversation-overview-chart"
+              chart-type="topics-overview"
+            ></sensemaker-chart>
+          </div>
+        </section>
+
+        <section class="card" id="participant-alignment">
+          <div class="card-header">
+            <h2>Participant alignment</h2>
+            <button type="button" data-share="participant-alignment" class="button subtle">Share</button>
+          </div>
+          <div class="toggle-row">
+            <button type="button" class="button toggle alignment-toggle selected" data-alignment="high">High alignment</button>
+            <button type="button" class="button toggle alignment-toggle" data-alignment="low">Low alignment</button>
+            <button type="button" class="button toggle alignment-toggle" data-alignment="uncertain">Uncertainty</button>
+          </div>
+          <p id="alignment-description"></p>
+          <div id="alignment-cards" class="statement-grid"></div>
+        </section>
+
+        <div class="heading-badge-wrapper">
+          <div id="topics-identified-badge" class="heading-badge"></div>
+        </div>
+        <div id="topics-root"></div>
+      </section>
+    </main>
+
+    <dialog id="share-dialog">
+      <h3 id="share-title">Share report</h3>
+      <p id="share-text">Copy link to share this report section.</p>
+      <div class="share-row">
+        <input id="share-url" type="text" readonly />
+        <button id="share-copy" type="button" class="button">Copy</button>
+      </div>
+      <button id="share-close" type="button" class="button subtle">Close</button>
+    </dialog>
+
+    <dialog id="statements-dialog" class="statements-drawer" aria-labelledby="drawer-title">
+      <div class="drawer-header">
+        <h4 id="drawer-title">Statements</h4>
+        <button
+          type="button"
+          id="drawer-close"
+          class="drawer-close-button"
+          aria-label="Close drawer"
+        >×</button>
+      </div>
+      <div id="drawer-body" class="drawer-content"></div>
+    </dialog>
+
+    <div id="tooltip" class="tooltip hidden"></div>
+
+    <script>
+      window.REPORT_PAYLOAD = {{{payloadJson}}};
+    </script>
+    <script src="viz.js" inline></script>
+    <script src="script.js" inline></script>
+  </body>
+</html>

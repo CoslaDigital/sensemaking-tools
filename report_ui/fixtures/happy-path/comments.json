@@ -1,0 +1,56 @@
+[
+  {
+    "id": "c1",
+    "text": "Build more mixed-income homes near transit.",
+    "votes": {
+      "group-a": { "agreeCount": 8, "disagreeCount": 1, "passCount": 1 }
+    },
+    "topics": "Housing:Affordable housing",
+    "passRate": 0.1,
+    "agreeRate": 0.8,
+    "disagreeRate": 0.1,
+    "isHighAlignment": true,
+    "highAlignmentScore": 0.8,
+    "isLowAlignment": false,
+    "lowAlignmentScore": 0.1,
+    "isHighUncertainty": false,
+    "highUncertaintyScore": 0.1,
+    "isFilteredOut": false
+  },
+  {
+    "id": "c2",
+    "text": "Prioritize preserving neighborhood character over dense development.",
+    "votes": {
+      "group-a": { "agreeCount": 4, "disagreeCount": 4, "passCount": 1 }
+    },
+    "topics": "Housing:Zoning",
+    "passRate": 0.11,
+    "agreeRate": 0.44,
+    "disagreeRate": 0.44,
+    "isHighAlignment": false,
+    "highAlignmentScore": 0.44,
+    "isLowAlignment": true,
+    "lowAlignmentScore": 0.44,
+    "isHighUncertainty": false,
+    "highUncertaintyScore": 0.11,
+    "isFilteredOut": false
+  },
+  {
+    "id": "c3",
+    "text": "I need more examples before deciding on zoning reform.",
+    "votes": {
+      "group-a": { "agreeCount": 2, "disagreeCount": 1, "passCount": 4 }
+    },
+    "topics": "Housing:Affordable housing",
+    "passRate": 0.57,
+    "agreeRate": 0.29,
+    "disagreeRate": 0.14,
+    "isHighAlignment": false,
+    "highAlignmentScore": 0.29,
+    "isLowAlignment": false,
+    "lowAlignmentScore": 0.29,
+    "isHighUncertainty": true,
+    "highUncertaintyScore": 0.57,
+    "isFilteredOut": false
+  }
+]
