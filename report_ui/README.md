@@ -48,30 +48,36 @@ npm run smoke
 
 This validates:
 
-- report file generation for happy and empty datasets,
-- key section marker presence in output HTML,
-- clear failure behavior for malformed input.
+- successful builds for `happy-path` and `empty-dataset` (output under `smoke-output/<fixture>/report.html`),
+- output HTML includes the `About this report` section marker,
+- `missing-field` fails with a clear validation error (`topics string`).
 
 ## Parity checklist against Angular standalone report
 
-- [x] Single-file standalone HTML output.
+- [x] Single-file standalone HTML output (CSS, JS, and viz assets inlined).
 - [x] Core report sections:
-  - About this report
-  - Participant alignment
-  - Topic sections with subtopic disclosures
+  - About this report (summary copy, alignment definitions, metrics)
+  - Conversation overview (`topics-overview` chart)
+  - Participant alignment (high / low / uncertainty toggles)
+  - Topics identified badge and per-topic cards (breakdown, chart, subtopic accordions)
+  - Subtopic panels (breakdown, themes, high / low / uncertainty statement groups, view-all)
+- [x] Charts via inlined `@cosla/sensemaker-visualizations` (`sensemaker-chart`):
+  - `topics-overview` on conversation overview
+  - `topic-alignment` with Groupings / Statements (`solid` / `waffle`) per topic
 - [x] Interaction baseline:
-  - Anchor navigation
+  - Side nav (`details` / `summary`) with topic and subtopic links
+  - In-page anchor scroll (overview, topics, subtopics)
   - Share dialog and copy link
-  - Statement tooltips
-  - "View all statements" drawer dialog
-- [ ] Visual style and component parity with Angular Material theme.
-- [ ] Chart parity (`visualization-library` intentionally excluded in v1).
-- [ ] Threshold/help microcopy parity for every section.
+  - Statement card tooltips (including inside the statements dialog)
+  - Centered statements dialog for “View all statements” (grouped like the Angular drawer)
+- [~] Visual style: lightweight CSS approximating layout and colors; not full Angular Material parity (typography, icons, breakdown widgets, etc.).
+- [~] Threshold / help microcopy: main section copy and tooltips match Angular; minor gaps may remain (e.g. per-section share buttons, overview breakdown icons).
 
 ## Publishing notes
 
-This package is structured for eventual npm publishing:
+This package is structured for npm publishing:
 
 - CLI exposed via `bin` as `sensemaking-report-ui`.
+- Runtime dependency on `@cosla/sensemaker-visualizations` (UMD + CSS copied in at build time).
 - `files` whitelist includes only runtime artifacts, fixtures, and docs.
 - Breaking input-contract changes should use semver major bumps.

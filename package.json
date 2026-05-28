@@ -6,6 +6,7 @@
   "private": true,
   "workspaces": [
     "library",
+    "report_ui",
     "web-ui",
     "visualization-library"
   ],
