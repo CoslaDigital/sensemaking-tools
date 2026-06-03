@@ -26,68 +26,66 @@ jest.mock("./model_util", () => {
   };
 });
 
-// Mock the VertexAI module - this mock will be used when the module is imported within a test run.
-jest.mock("@google-cloud/vertexai", () => {
-  // Mock the model response. This mock needs to be set up to return response specific for each test.
+jest.mock("@google/genai", () => {
   const generateContentStreamMock = jest.fn();
   return {
-    // Mock `generateContentStream` function within VertexAI module
-    VertexAI: jest.fn(() => ({
-      getGenerativeModel: jest.fn(() => ({
+    GoogleGenAI: jest.fn(() => ({
+      models: {
         generateContentStream: generateContentStreamMock,
-      })),
+      },
     })),
-    // Expose the mocked function, so we can get it within a test using `jest.requireMock`, and spy on its invocations.
-    generateContentStreamMock: generateContentStreamMock,
-    // Mock other imports from VertexAI module
-    HarmBlockThreshold: {},
-    HarmCategory: {},
-    SchemaType: { ARRAY: 0, OBJECT: 1, STRING: 2 },
+    generateContentStreamMock,
+    HarmBlockThreshold: {
+      BLOCK_NONE: "BLOCK_NONE",
+    },
+    HarmCategory: {
+      HARM_CATEGORY_HATE_SPEECH: "HARM_CATEGORY_HATE_SPEECH",
+      HARM_CATEGORY_DANGEROUS_CONTENT: "HARM_CATEGORY_DANGEROUS_CONTENT",
+      HARM_CATEGORY_SEXUALLY_EXPLICIT: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+      HARM_CATEGORY_HARASSMENT: "HARM_CATEGORY_HARASSMENT",
+      HARM_CATEGORY_UNSPECIFIED: "HARM_CATEGORY_UNSPECIFIED",
+    },
   };
 });
 
+async function* streamWithText(text: string) {
+  yield {
+    text,
+    usageMetadata: {
+      promptTokenCount: 10,
+      candidatesTokenCount: 5,
+    },
+  };
+}
+
 function mockSingleModelResponse(generateContentStreamMock: jest.Mock, responseMock: string) {
-  generateContentStreamMock.mockImplementationOnce(() =>
-    Promise.resolve({
-      response: {
-        candidates: [{ content: { parts: [{ text: responseMock }] } }],
-      },
-    })
-  );
+  generateContentStreamMock.mockImplementationOnce(() => Promise.resolve(streamWithText(responseMock)));
 }
 
 describe("VertexAI test", () => {
   const model = new VertexModel("my-project", "us-central1", "models/gemini-pro");
-  const { generateContentStreamMock } = jest.requireMock("@google-cloud/vertexai");
+  const { generateContentStreamMock } = jest.requireMock("@google/genai");
 
   beforeEach(() => {
-    // Reset the mock before each test
     generateContentStreamMock.mockClear();
   });
 
-  // These tests are specifically for the VertexModel class logic, rather than the implementation logic of the VertexAI calls
   describe("generateContent", () => {
     it("should retry on rate limit error and return valid JSON", async () => {
       const expectedJSON = [{ result: "success" }];
 
-      // Mock the first call to throw a rate limit error
       generateContentStreamMock.mockImplementationOnce(() => {
         throw new Error("429 Too Many Requests");
       });
 
-      // Mock the second call to return the expected JSON
       mockSingleModelResponse(generateContentStreamMock, JSON.stringify(expectedJSON));
 
-      const result = JSON.parse(
-        await model.callLLM("Some instructions", model.getGenerativeModel())
-      );
+      const result = JSON.parse(await model.callLLM("Some instructions"));
 
-      // Assert that the mock was called twice (initial call + retry)
       expect(generateContentStreamMock).toHaveBeenCalledTimes(2);
 
-      // Assert that the result is the expected JSON
       expect(result).toEqual(expectedJSON);
-    }, 15000); // no luck mocking retry timeout for this test - so letting it run longer for now
+    }, 15000);
 
     it("should generate valid text", async () => {
       const expectedText = "This is some text.";
@@ -102,7 +100,6 @@ describe("VertexAI test", () => {
 
     it("should generate valid structured data that matches the schema", async () => {
       const expectedStructuredData = { key1: "value1", key2: 2 };
-      // the TypeBox spec:
       const schema = Type.Object({
         key1: Type.String(),
         key2: Type.Number(),
@@ -119,7 +116,6 @@ describe("VertexAI test", () => {
 
     it("should throw an error when generated data does not match the schema", async () => {
       const expectedStructuredData = { key1: 1, key2: "value2" };
-      // the TypeBox spec:
       const schema = Type.Object({
         key1: Type.String(),
         key2: Type.Number(),
