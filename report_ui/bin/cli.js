@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runBuild } from "./build.js";
+import { runBuild } from "../build.js";
 
 runBuild(process.argv, process.cwd())
   .then((result) => {
