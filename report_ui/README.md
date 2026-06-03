@@ -1,6 +1,6 @@
 # report_ui
 
-Lightweight report builder that generates a standalone `report.html` without Angular.
+Lightweight report builder that generates a standalone `report.html`. This is based off the `@cosla/sensemaking-web-uisen` package but does not require Angular.
 
 ## CLI usage
 
