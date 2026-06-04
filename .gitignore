@@ -7,6 +7,7 @@ dist/
 __pycache__
 /.venv
 /venv
+devnotes.md
 private_*
 # Ignore Gemini CLI files.
 GEMINI.md
