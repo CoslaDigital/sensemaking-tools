@@ -21,8 +21,7 @@ Example Command:
 python3 -m src.evals.evals \
   --baseline_csv ~/input.csv \
   --output_dir output \
-  --project your-cloud-project \
-  --api_key YOUR_API_KEY
+  --gemini_api_key YOUR_API_KEY
 """
 
 import argparse

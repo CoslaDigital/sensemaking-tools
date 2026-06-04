@@ -10,7 +10,8 @@ Example Usage:
   python3 -m src.simulated_jury.main \
     --participants_csv s1_r2_v3_processed.csv \
     --statements_csv statements.csv \
-    --output_csv results.csv
+    --output_csv results.csv \
+    --gemini_api_key "$GEMINI_API_KEY"
 """
 
 import argparse
@@ -59,6 +60,11 @@ def main():
       default="gemini-2.5-flash-lite",
       type=str,
       help="Name of the model to use.",
+  )
+  parser.add_argument(
+      "--gemini_api_key",
+      type=str,
+      help="The Gemini API key.",
   )
   parser.add_argument(
       "--jury_size",

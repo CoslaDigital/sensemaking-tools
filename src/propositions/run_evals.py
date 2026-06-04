@@ -21,19 +21,19 @@ Example Usage:
     --eval_type=agreement_on_opinion \
     --r2_input_file=/path/to/r2_data.csv \
     --output_file=/path/to/output \
-    --api_key=your-api-key
+    --gemini_api_key=your-api-key
 
   python3 -m src.propositions.run_evals \
     --eval_type=agreement_on_topic \
     --r2_input_file=/path/to/r2_data.csv \
     --output_file=/path/to/output.csv \
-    --api_key=your-api-key
+    --gemini_api_key=your-api-key
 
   python3 -m src.propositions.run_evals \
     --eval_type=propositions_quality \
     --input_file=/path/to/world_model.pkl \
     --output_file=/path/to/output.pkl \
-    --api_key=your-api-key
+    --gemini_api_key=your-api-key
 
 """
 
@@ -363,10 +363,10 @@ async def main():
   )
   parser.add_argument("--output_file", type=str, help="Output file path.")
   parser.add_argument(
-      "--api_key",
+      "--gemini_api_key",
       type=str,
       required=False,
-      help="The API key for the LLM.",
+      help="The API key for Gemini (GenaiModel).",
   )
   parser.add_argument(
       "--eval_model_name",
@@ -387,15 +387,21 @@ async def main():
 
   logging.info("Starting evaluation runner. Using LLM backend.")
 
-  if not args.api_key and "GOOGLE_API_KEY" not in os.environ:
+  gemini_api_key = (
+      args.gemini_api_key
+      or os.environ.get("GEMINI_API_KEY")
+      or os.environ.get("GOOGLE_API_KEY")
+  )
+  if not gemini_api_key:
     logging.error(
-        "API key for the LLM is required (either via --api_key or"
-        " GOOGLE_API_KEY env var)."
+        "Gemini API key for GenaiModel is required (either via --gemini_api_key"
+        " or GEMINI_API_KEY / GOOGLE_API_KEY env var)."
     )
     return
 
+
   model = genai_model.GenaiModel(
-      model_name=args.eval_model_name, api_key=args.api_key
+      model_name=args.eval_model_name, gemini_api_key=gemini_api_key
   )
 
   if args.eval_type in ["agreement_on_topic", "agreement_on_opinion"]:

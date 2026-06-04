@@ -22,6 +22,7 @@ python3 -m src.generate_report_text.generate_report_text \
   --input_csv <INPUT_CSV> \
   --additional_context_file <ADDITIONAL_CONTEXT_TEXT_FILE> \
   --output_dir <OUTPUT_DIR> \
+  --gemini_api_key "$GEMINI_API_KEY" \
   --model_name gemini-2.5-pro
 """
 

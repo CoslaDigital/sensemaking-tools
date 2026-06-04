@@ -50,7 +50,7 @@ Pass that path to `--additional_context_file` / `--additional_context` flags whe
 
 LLM adapters (see README):
 
-- **Gemini (default):** `GOOGLE_API_KEY`
+- **Gemini (default):** `GEMINI_API_KEY` (legacy `GOOGLE_API_KEY` also accepted)
 - **Vertex AI:** Application Default Credentials; `--vertex_project` or `GOOGLE_CLOUD_PROJECT`; optional `--vertex_location` or `GOOGLE_CLOUD_LOCATION` (default `global`)
 - **OpenAI-compatible:** `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or `MISTRAL_API_KEY` depending on `--provider`
 

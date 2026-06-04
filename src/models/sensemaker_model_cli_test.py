@@ -199,6 +199,19 @@ class SensemakerModelCliTest(unittest.TestCase):
           sensemaker_model_cli.resolve_api_key(opts), "mistral-test-key"
       )
 
+  @mock.patch.dict("os.environ", {"GEMINI_API_KEY": "gem-key"}, clear=False)
+  def test_resolve_api_key_gemini_from_gemini_env(self):
+    opts = sensemaker_model_cli.SensemakerModelConfig(
+        adapter="gemini",
+        provider=None,
+        base_url="",
+        model_name=None,
+        api_key=None,
+        openrouter_site_url=None,
+        openrouter_app_name=None,
+    )
+    self.assertEqual(sensemaker_model_cli.resolve_api_key(opts), "gem-key")
+
   @mock.patch.dict("os.environ", {"GOOGLE_API_KEY": "g-key"}, clear=False)
   def test_create_llm_from_args_default_gemini(self):
     parser = argparse.ArgumentParser()

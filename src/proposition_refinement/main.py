@@ -1035,7 +1035,7 @@ async def main():
       type=str,
       default=None,
       help=(
-          "Deprecated: use --api_key or provider env vars. Kept for backward"
+          "Deprecated: use --api_key or GEMINI_API_KEY. Kept for backward"
           " compatibility."
       ),
   )
@@ -1090,12 +1090,10 @@ async def main():
   sim_jury_model = sensemaker_model_cli.create_llm_from_args(
       args,
       model_name=args.simulated_jury_model_name,
-      api_key=args.gemini_api_key,
   )
   nuanced_props_model = sensemaker_model_cli.create_llm_from_args(
       args,
       model_name=args.nuanced_propositions_model_name,
-      api_key=args.gemini_api_key,
   )
 
   args.additional_context = runner_utils.get_additional_context(args)

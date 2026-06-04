@@ -30,7 +30,7 @@ Before you begin, ensure you have the following installed:
 
 * **Python 3.10+** and **pip**
 * **Node.js** and **NPM** (required for the interactive visualization step; not included in the PyPI wheel)
-* A **Gemini API Key**, **Vertex AI** credentials (Application Default Credentials), or credentials for `--adapter openai-compatible`
+* A **Gemini API Key** (`GEMINI_API_KEY` or legacy `GOOGLE_API_KEY`), **Vertex AI** credentials (Application Default Credentials), or credentials for `--adapter openai-compatible`
 
 **From PyPI (recommended for running pipelines):**
 
@@ -61,7 +61,7 @@ Use that path for `--additional_context_file` / `--additional_context` below, or
 **Pro tip:** After configuring your API key, run the health check first to verify your LLM adapter:
 
 ```shell
-export GOOGLE_API_KEY="your_api_key_here"
+export GEMINI_API_KEY="your_api_key_here"
 sensemaking-health-check \
   --output_file health-check.txt \
   --adapter gemini \
@@ -130,6 +130,7 @@ bash src/survey_processing.sh \
 bash src/moderation.sh \
   --processed_csv <OUTPUT_DIR>/processed.csv \
   --output_dir <OUTPUT_DIR> \
+  --gemini_api_key "$GEMINI_API_KEY" \
   --api_key "$GOOGLE_API_KEY"
 ```
 
@@ -138,10 +139,10 @@ bash src/moderation.sh \
 Use Gemini to discover discussion topics and extract representative quotes from the dialogue. This script can be run on data from sources other than qualtrics. It only requires an input csv with columns for participant\_id (a unique identifier for each participant) and survey\_text (the text to be analyzed).
 
 ```shell
-export GOOGLE_API_KEY="your_api_key_here"
 python3 -m src.categorization_runner \
   --input_file <OUTPUT_DIR>/processed.csv \
   --output_dir <OUTPUT_DIR>/categorization \
+  --gemini_api_key "$GEMINI_API_KEY" \
   --additional_context_file src/default-additional-context.md
 ```
 
@@ -169,7 +170,7 @@ These flags work on LLM-backed pipeline steps: `categorization_runner`, `get_bri
 * `--provider <openai|openrouter|mistral>` — required when `--adapter` is `openai-compatible`
 * `--base_url <url>` — optional override (defaults depend on provider)
 * `--model_name <model>` — model id for the selected adapter
-* `--api_key <token>` — optional; otherwise uses `GOOGLE_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or `MISTRAL_API_KEY` (not used for `vertex`)
+* `--api_key <token>` — optional; otherwise uses `GEMINI_API_KEY` (or legacy `GOOGLE_API_KEY` for gemini), `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or `MISTRAL_API_KEY` (not used for `vertex`)
 
 OpenRouter example:
 
@@ -227,7 +228,7 @@ python3 -m src.categorization_runner \
 Apply classifiers to score the extracted quotes on attributes like reasoning, personal stories, and curiosity. This helps surface the most constructive contributions. By default these are the first quotes shown in the interactive report.
 
 ```shell
-export GOOGLE_API_KEY="your_key_here"
+export GEMINI_API_KEY="your_key_here"
 python3 -m src.get_bridging_scores \
   --input_csv <OUTPUT_DIR>/categorization/categorized_without_other_filtered.csv \
   --output_csv <OUTPUT_DIR>/bridging_scores.csv \
@@ -321,7 +322,7 @@ Generate distinct propositions and use a simulated jury technique to rank them a
 python3 -m src.propositions.proposition_generator \
   --r1_input_file <OUTPUT_DIR>/categorization/categorized_without_other_filtered.csv \
   --output_dir <OUTPUT_DIR>/propositions \
-  --gemini_api_key "$GOOGLE_API_KEY"
+  --gemini_api_key "$GEMINI_API_KEY"
 ```
 
 **Rank and Refine with Simulated Jury:**
@@ -330,7 +331,7 @@ python3 -m src.propositions.proposition_generator \
 python3 -m src.proposition_refinement.main \
   --input_pkl <OUTPUT_DIR>/propositions/world_model.pkl \
   --output_pkl <OUTPUT_DIR>/propositions/refined_world_model.pkl \
-  --gemini_api_key "$GOOGLE_API_KEY" \
+  --gemini_api_key "$GEMINI_API_KEY" \
   --run_pav_selection
 ```
 
@@ -351,7 +352,7 @@ python -m src.world_model.main --query=all_nuanced --output_format=csv \     <OU
 ```shell
 python -m src.proposition_simplification_runner \
 --input_csv <INPUT_CSV> --output_csv <OUTPUT_CSV> \
---gemini_api_key <API_KEY> --model_name gemini-2.5-pro
+--gemini_api_key "$GEMINI_API_KEY" --model_name gemini-2.5-pro
 ```
 
 INPUT\_CSV should contain a single column called "original" with the original proposition text.  The OUTPUT\_CSV contains an additional column called "simplification" with the rewritten proposition.

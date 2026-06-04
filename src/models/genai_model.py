@@ -78,7 +78,7 @@ class GenaiModel:
   def __init__(
       self,
       model_name: str,
-      api_key: str | None = None,
+      gemini_api_key: str | None = None,
       *,
       vertex_project: str | None = None,
       vertex_location: str | None = None,
@@ -90,9 +90,9 @@ class GenaiModel:
 
     Args:
       model_name: The name of the model to use.
-      api_key: The Google Generative AI API key for AI Studio. If not provided,
-        the GOOGLE_API_KEY environment variable will be used. Not used when
-        vertex_project is set.
+      gemini_api_key: The Google Generative AI API key for AI Studio. If not
+        provided, the GEMINI_API_KEY or GOOGLE_API_KEY environment variable will
+        be used. Not used when vertex_project is set.
       vertex_project: GCP project id for Vertex AI. When set, uses Application
         Default Credentials instead of an API key.
       vertex_location: Vertex AI region. Defaults to "global" when vertex_project
@@ -109,14 +109,16 @@ class GenaiModel:
           location=location,
       )
     else:
-      if not api_key:
-        api_key = os.getenv("GOOGLE_API_KEY")
-      if not api_key:
-        raise ValueError(
-            "Google API key not provided and GOOGLE_API_KEY environment"
-            " variable is not set."
+      if not gemini_api_key:
+        gemini_api_key = os.getenv("GEMINI_API_KEY") or os.getenv(
+            "GOOGLE_API_KEY"
         )
-      self.client = genai.Client(api_key=api_key)
+      if not gemini_api_key:
+        raise ValueError(
+            "Google API key not provided and GEMINI_API_KEY (or"
+            " GOOGLE_API_KEY) environment variable is not set."
+        )
+      self.client = genai.Client(api_key=gemini_api_key)
     self.model = model_name
     self.safety_settings = (
         [

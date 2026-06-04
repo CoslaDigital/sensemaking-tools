@@ -130,7 +130,7 @@ def get_args():
       "--gemini_api_key",
       required=False,
       help=(
-          "Deprecated: use --api_key or provider env vars. Kept for backward"
+          "Deprecated: use --api_key or GEMINI_API_KEY. Kept for backward"
           " compatibility."
       ),
   )

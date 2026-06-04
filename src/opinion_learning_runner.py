@@ -16,7 +16,7 @@
 Runs opinion learning on a CSV of statements and quotes.
 
 Sample command:
-python opinion_learning_runner.py --input_file input.csv --output_file opinion_learning_output.csv --subject "Freedom and Equality" --vertex_project YOUR_PROJECT --vertex_location global --model_name gemini-2.5-pro --runs 5
+python opinion_learning_runner.py --input_file input.csv --output_file opinion_learning_output.csv --subject "Freedom and Equality" --vertex_project YOUR_PROJECT --vertex_location global --gemini_api_key YOUR_KEY --model_name gemini-2.5-pro --runs 5
 """
 
 import argparse

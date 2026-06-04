@@ -223,7 +223,7 @@ def resolve_api_key(opts: SensemakerModelConfig) -> str | None:
   if opts.api_key:
     return opts.api_key
   if opts.adapter == "gemini":
-    return os.getenv("GOOGLE_API_KEY")
+    return os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
   if opts.adapter == "openai-compatible" and opts.provider:
     return os.getenv(OPENAI_COMPAT_ENV_KEYS[opts.provider])
   return None
@@ -274,7 +274,7 @@ def validate_sensemaker_model_opts(opts: SensemakerModelConfig) -> None:
           f" --api_key or set {env_var}."
       )
   elif opts.adapter == "gemini":
-    # API key is resolved when constructing GenaiModel (GOOGLE_API_KEY or --api_key).
+    # API key is resolved when constructing GenaiModel (GEMINI_API_KEY, etc.).
     pass
 
 
