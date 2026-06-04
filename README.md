@@ -131,7 +131,7 @@ bash src/moderation.sh \
   --processed_csv <OUTPUT_DIR>/processed.csv \
   --output_dir <OUTPUT_DIR> \
   --gemini_api_key "$GEMINI_API_KEY" \
-  --api_key "$GOOGLE_API_KEY"
+  --gcloud_api_key "$GCLOUD_API_KEY"
 ```
 
 #### 2\. Topic Discovery and Quote Extraction
@@ -236,7 +236,7 @@ python3 -m src.get_bridging_scores \
   --model_name gemini-3.1-flash-lite-preview
 ```
 
-`--scorer_type` selects the backend: **`GEMINI`** uses the LLM adapter flags above; **`PERSPECTIVE`** uses the [Perspective API](https://developers.perspectiveapi.com/) and requires `--api_key` to be a Perspective key (adapter flags are ignored).
+`--scorer_type` selects the backend: **`GEMINI`** uses the LLM adapter flags above; **`PERSPECTIVE`** uses the [Perspective API](https://developers.perspectiveapi.com/) and requires `--gcloud_api_key` or `GCLOUD_API_KEY` (or legacy `--api_key`).
 
 OpenAI-compatible bridging example:
 

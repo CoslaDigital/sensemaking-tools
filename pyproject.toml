@@ -40,8 +40,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pre_commit==4.2.0",
-  "pytest==8.4.1",
-  "pytest-asyncio==1.0.0",
+  "pytest==9.0.3",
+  "pytest-asyncio==1.4.0",
   "pyink==25.12.0",
 ]
 
