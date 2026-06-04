@@ -1,13 +1,17 @@
+"""CLI to query world model pickle files and export results in several formats."""
+
 import argparse
-import pandas as pd
 import sys
-from . import world_model
+
+import pandas as pd
+
 from . import formatters
+from . import world_model
 
 
-def main():
-  # A mapping from query names to their accessor functions
-  QUERY_HANDLERS = {
+def main(argv: list[str] | None = None) -> None:
+  """Parses CLI arguments, runs the query, and prints results to stdout."""
+  query_handlers = {
       "all_by_opinion": world_model.get_all_by_opinion_propositions,
       "all_by_topic": world_model.get_all_by_topic_propositions,
       "all_nuanced": world_model.get_all_nuanced_propositions,
@@ -37,7 +41,7 @@ def main():
   parser.add_argument(
       "--query",
       required=True,
-      choices=list(QUERY_HANDLERS.keys()) + ["nested"],
+      choices=list(query_handlers.keys()) + ["nested"],
       help=(
           "The name of the query to run. Use 'nested' for nested attribute"
           " access."
@@ -60,7 +64,6 @@ def main():
           " 'world_model.simulation_results')."
       ),
   )
-  # Arguments for accessors
   parser.add_argument(
       "--top_n_opinion",
       type=int,
@@ -95,7 +98,7 @@ def main():
       ),
   )
 
-  args = parser.parse_args()
+  args = parser.parse_args(argv)
 
   try:
     world_model_data = world_model.load_world_model(args.input_pkl)
@@ -115,7 +118,7 @@ def main():
         print(result)
         return
     else:
-      handler = QUERY_HANDLERS[args.query]
+      handler = query_handlers[args.query]
       handler_args = {"world_model_data": world_model_data}
 
       if args.query == "selected_by_opinion":
@@ -139,7 +142,6 @@ def main():
       result_df = result_df.head(args.head)
 
     if args.output_format == "text":
-      # Proposition lists have a special DataFrame-level formatter
       if args.query in [
           "selected_simple",
           "selected_nuanced",
@@ -147,14 +149,12 @@ def main():
       ]:
         print(formatters.format_propositions_by_topic(result_df))
       else:
-        # Other queries use a row-by-row card formatter
-        CARD_FORMATTERS = {
+        card_formatters = {
             "simulation_results": formatters.format_simulation_result_card,
             "failed_tries": formatters.format_failed_try_card,
             "participant_data": formatters.format_participant_card,
         }
-        # Get the specific formatter, or use the new default card formatter
-        formatter = CARD_FORMATTERS.get(
+        formatter = card_formatters.get(
             args.query, formatters.format_default_card
         )
         for _, row in result_df.iterrows():
@@ -166,12 +166,11 @@ def main():
     elif args.output_format == "jsonl":
       print(result_df.to_json(orient="records", lines=True))
     elif args.output_format == "pkl":
-      # Note: This will print binary data to stdout.
-      # Best to redirect to a file, e.g., > output.pkl
       result_df.to_pickle(sys.stdout.buffer)
 
   except (FileNotFoundError, IOError, TypeError, ValueError) as e:
-    print(f"Error: {e}")
+    print(f"Error: {e}", file=sys.stderr)
+    sys.exit(1)
 
 
 if __name__ == "__main__":

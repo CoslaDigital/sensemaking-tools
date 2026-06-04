@@ -72,3 +72,7 @@ def qualtrics_process() -> None:
 
 def health_check() -> None:
   _run_module("src.health_check_runner")
+
+
+def world_model() -> None:
+  _run_module("src.world_model.main")

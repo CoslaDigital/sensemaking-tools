@@ -14,6 +14,51 @@ import os
 sys.path.append(os.getcwd())
 
 from src.proposition_refinement import main as proposition_refinement_main
+from src.proposition_refinement.main import (
+    DEFAULT_NUANCED_PROPOSITIONS_MODEL,
+    DEFAULT_SIMULATED_JURY_MODEL,
+    resolve_refine_stage_model,
+)
+
+
+class ResolveRefineStageModelTest(unittest.TestCase):
+  """Tests for refine stage model precedence."""
+
+  def test_uses_stage_default_when_no_flags(self):
+    self.assertEqual(
+        resolve_refine_stage_model(
+            None, None, DEFAULT_SIMULATED_JURY_MODEL
+        ),
+        DEFAULT_SIMULATED_JURY_MODEL,
+    )
+    self.assertEqual(
+        resolve_refine_stage_model(
+            None, None, DEFAULT_NUANCED_PROPOSITIONS_MODEL
+        ),
+        DEFAULT_NUANCED_PROPOSITIONS_MODEL,
+    )
+
+  def test_model_name_applies_to_both_stages(self):
+    self.assertEqual(
+        resolve_refine_stage_model(None, "custom-model", DEFAULT_SIMULATED_JURY_MODEL),
+        "custom-model",
+    )
+
+  def test_stage_flag_overrides_model_name(self):
+    self.assertEqual(
+        resolve_refine_stage_model(
+            "jury-only", "global-model", DEFAULT_SIMULATED_JURY_MODEL
+        ),
+        "jury-only",
+    )
+
+  def test_explicit_stage_flags_without_model_name(self):
+    self.assertEqual(
+        resolve_refine_stage_model(
+            "flash-lite", None, DEFAULT_NUANCED_PROPOSITIONS_MODEL
+        ),
+        "flash-lite",
+    )
 
 
 class PropositionRefinementMainTest(unittest.TestCase):
@@ -593,6 +638,7 @@ class PropositionRefinementMainTest(unittest.TestCase):
     self.mock_args.input_pkl = "dummy.pkl"
     self.mock_args.processed_r2_data = None
     self.mock_args.gemini_api_key = "dummy_key"
+    self.mock_args.model_name = None
     self.mock_args.simulated_jury_model_name = "dummy-model"
     self.mock_args.nuanced_propositions_model_name = "dummy-model"
     self.mock_args.additional_context_file = None

@@ -80,6 +80,35 @@ def pipeline_stage(name=None, check_fn=None):
   return decorator
 
 
+DEFAULT_SIMULATED_JURY_MODEL = "gemini-2.5-flash-lite"
+DEFAULT_NUANCED_PROPOSITIONS_MODEL = "gemini-2.5-pro"
+
+
+def resolve_refine_stage_model(
+    stage_model: str | None,
+    global_model: str | None,
+    stage_default: str,
+) -> str:
+  """Resolves the model id for one refine pipeline stage.
+
+  Precedence: explicit stage flag, then --model_name, then stage default.
+
+  Args:
+    stage_model: Value from --simulated_jury_model_name or
+      --nuanced_propositions_model_name when set on the CLI.
+    global_model: Value from --model_name when set on the CLI.
+    stage_default: Fallback when neither stage nor global model is set.
+
+  Returns:
+    The effective model name for create_llm_from_args.
+  """
+  if stage_model is not None:
+    return stage_model
+  if global_model:
+    return global_model
+  return stage_default
+
+
 def reconstitute_participant_data(by_opinion_df, args):
   """Merges R1 and R2 participant data into a single jury pool."""
   if args.verbose:
@@ -1025,10 +1054,23 @@ async def main():
       ),
   )
   parser.add_argument(
+      "--model_name",
+      type=str,
+      default=None,
+      help=(
+          "Default generative model for all refine stages. Overridden by"
+          " --simulated_jury_model_name or --nuanced_propositions_model_name"
+          " when those are set."
+      ),
+  )
+  parser.add_argument(
       "--simulated_jury_model_name",
       type=str,
-      default="gemini-2.5-flash-lite",
-      help="The name of the generative model to use for the simulated jury.",
+      default=None,
+      help=(
+          "Model for simulated jury stages. Overrides --model_name when set;"
+          f' otherwise defaults to {DEFAULT_SIMULATED_JURY_MODEL}.'
+      ),
   )
   parser.add_argument(
       "--gemini_api_key",
@@ -1054,8 +1096,12 @@ async def main():
   parser.add_argument(
       "--nuanced_propositions_model_name",
       type=str,
-      default="gemini-2.5-pro",
-      help="The name of the generative model to use for nuanced propositions.",
+      default=None,
+      help=(
+          "Model for nuanced proposition generation and deduplication."
+          " Overrides --model_name when set; otherwise defaults to"
+          f" {DEFAULT_NUANCED_PROPOSITIONS_MODEL}."
+      ),
   )
   parser.add_argument(
       "--verbose",
@@ -1087,13 +1133,24 @@ async def main():
       stream=sys.stdout,
   )
 
+  global_model = (args.model_name or "").strip() or None
+  simulated_jury_model_name = resolve_refine_stage_model(
+      args.simulated_jury_model_name,
+      global_model,
+      DEFAULT_SIMULATED_JURY_MODEL,
+  )
+  nuanced_propositions_model_name = resolve_refine_stage_model(
+      args.nuanced_propositions_model_name,
+      global_model,
+      DEFAULT_NUANCED_PROPOSITIONS_MODEL,
+  )
   sim_jury_model = sensemaker_model_cli.create_llm_from_args(
       args,
-      model_name=args.simulated_jury_model_name,
+      model_name=simulated_jury_model_name,
   )
   nuanced_props_model = sensemaker_model_cli.create_llm_from_args(
       args,
-      model_name=args.nuanced_propositions_model_name,
+      model_name=nuanced_propositions_model_name,
   )
 
   args.additional_context = runner_utils.get_additional_context(args)

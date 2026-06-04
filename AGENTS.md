@@ -45,6 +45,11 @@ Use these exact commands when verifying your work. Run them from the project roo
     ```bash
     python3 -m src.health_check_runner --output_file /tmp/health-check.txt --adapter gemini
     ```
+*   **World model export** (query refined pickle; no LLM; redirect stdout to a file):
+    ```bash
+    sensemaking-world-model --query all_by_topic --output_format csv \
+      /path/to/refined_world_model.pkl > /tmp/final_propositions.csv
+    ```
 *   **Run all tests:**
     ```bash
     pytest

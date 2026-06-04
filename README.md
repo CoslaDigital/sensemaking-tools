@@ -102,6 +102,7 @@ These match `python3 -m src.<module>` when developing from a clone:
 | Report text | `sensemaking-report-text` |
 | Proposition generation | `sensemaking-propositions` |
 | Jury refinement | `sensemaking-refine-propositions` |
+| Extract ranked propositions | `sensemaking-world-model` |
 | Proposition simplification | `sensemaking-simplify-propositions` |
 | Standalone jury | `sensemaking-jury` |
 
@@ -171,6 +172,8 @@ These flags work on LLM-backed pipeline steps: `categorization_runner`, `get_bri
 * `--base_url <url>` — optional override (defaults depend on provider)
 * `--model_name <model>` — model id for the selected adapter
 * `--api_key <token>` — optional; otherwise uses `GEMINI_API_KEY` (or legacy `GOOGLE_API_KEY` for gemini), `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or `MISTRAL_API_KEY` (not used for `vertex`)
+
+**Refine propositions (`sensemaking-refine-propositions`)** uses `--model_name` as the default for all LLM stages. Override per stage with `--simulated_jury_model_name` (jury voting) or `--nuanced_propositions_model_name` (nuanced generation/deduplication). If neither global nor stage flags are set, defaults are `gemini-2.5-flash-lite` (jury) and `gemini-2.5-pro` (nuanced).
 
 OpenRouter example:
 
@@ -331,7 +334,8 @@ python3 -m src.propositions.proposition_generator \
 python3 -m src.proposition_refinement.main \
   --input_pkl <OUTPUT_DIR>/propositions/world_model.pkl \
   --output_pkl <OUTPUT_DIR>/propositions/refined_world_model.pkl \
-  --gemini_api_key "$GEMINI_API_KEY" \
+  --simulated_jury_model_name "$MODEL_NAME" \
+  --nuanced_propositions_model_name "$MODEL_NAME" \
   --run_pav_selection
 ```
 
@@ -339,12 +343,14 @@ python3 -m src.proposition_refinement.main \
 
 ```shell
 # Get all ranked propositions
-python3 -m src.world_model.main --query=all_by_topic --output_format=csv \
-  <OUTPUT_DIR>/propositions/refined_world_model.pkl > final_propositions.csv
+sensemaking-world-model --query all_by_topic --output_format csv \
+  <OUTPUT_DIR>/propositions/refined_world_model.pkl \
+  > <OUTPUT_DIR>/propositions/final_propositions.csv
 
-# Get all ranked nuanced propositions:
-python -m src.world_model.main --query=all_nuanced --output_format=csv \     <OUTPUT_DIR>/propositions/refined_world_model.pkl > final_nuanced_propositions.csv
-
+# Get all ranked nuanced propositions
+sensemaking-world-model --query all_nuanced --output_format csv \
+  <OUTPUT_DIR>/propositions/refined_world_model.pkl \
+  > <OUTPUT_DIR>/propositions/final_nuanced_propositions.csv
 ```
 
 **Optional: to simplify the language used in propositions (e.g. for nuanced propositions):**

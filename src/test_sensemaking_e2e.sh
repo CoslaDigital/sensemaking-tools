@@ -105,11 +105,13 @@ python3 -m src.proposition_refinement.main \
   --jury_size 0.02
 
 print_step "Extract final propositions"
-python3 -m src.world_model.main --query=all_by_topic --output_format=csv \
-  "$WORKING_DIR/proposition_outputs/refined_world_model.pkl" > "$WORKING_DIR/final_propositions_by_topic.csv"
+sensemaking-world-model --query all_by_topic --output_format csv \
+  "$WORKING_DIR/proposition_outputs/refined_world_model.pkl" \
+  > "$WORKING_DIR/final_propositions_by_topic.csv"
 
-python3 -m src.world_model.main --query=all_nuanced --output_format=csv \
-  "$WORKING_DIR/proposition_outputs/refined_world_model.pkl" > "$WORKING_DIR/final_nuanced_propositions.csv"
+sensemaking-world-model --query all_nuanced --output_format csv \
+  "$WORKING_DIR/proposition_outputs/refined_world_model.pkl" \
+  > "$WORKING_DIR/final_nuanced_propositions.csv"
 
 print_step "Simplifying nuanced propositions"
 python3 -m src.proposition_simplification_runner \
