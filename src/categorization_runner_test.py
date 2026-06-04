@@ -15,6 +15,8 @@
 import argparse
 import asyncio
 import io
+import os
+import tempfile
 import unittest
 from unittest import mock
 
@@ -49,6 +51,24 @@ class CategorizationRunnerTest(unittest.TestCase):
             },
         ],
     )
+
+  def test_read_csv_to_dicts_preserves_none_literal(self):
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".csv", delete=False, encoding="utf-8"
+    ) as handle:
+      handle.write("participant_id,survey_text\n")
+      handle.write("comment_1374,None\n")
+      path = handle.name
+    try:
+      rows = categorization_runner._read_csv_to_dicts(path)
+      self.assertEqual(rows[0]["survey_text"], "None")
+    finally:
+      os.unlink(path)
+
+  def test_convert_csv_rows_to_statements_accepts_none_literal(self):
+    csv_rows = [{"participant_id": "comment_1374", "survey_text": "None"}]
+    statements = categorization_runner._convert_csv_rows_to_statements(csv_rows)
+    self.assertEqual(statements[0].text, "None")
 
   def test_convert_csv_rows_to_statements(self):
     csv_rows = [

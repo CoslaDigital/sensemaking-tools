@@ -85,10 +85,29 @@ def _read_csv_to_dicts(input_file_path: str) -> List[Dict[str, str]]:
   if not os.path.exists(file_path):
     raise FileNotFoundError(f"Input file not found: {file_path}")
 
-  df = pd.read_csv(file_path, dtype=str)
+  # keep_default_na=False so the literal token "None" is not parsed as NaN.
+  df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
   # Convert all header names to lowercase
   df.columns = [h.lower() for h in df.columns]
   return df.to_dict("records")
+
+
+def _survey_text_from_row(
+    survey_text: object, row_number: int, statement_id: str
+) -> str:
+  """Returns normalized survey_text or raises if missing."""
+  if survey_text is None or (
+      isinstance(survey_text, float) and pd.isna(survey_text)
+  ):
+    raise ValueError(
+        f"Row {row_number} (ID: {statement_id}) is missing 'survey_text'."
+    )
+  text = str(survey_text).strip()
+  if not text:
+    raise ValueError(
+        f"Row {row_number} (ID: {statement_id}) is missing 'survey_text'."
+    )
+  return text
 
 
 def _convert_csv_rows_to_statements(
@@ -107,10 +126,9 @@ def _convert_csv_rows_to_statements(
 
     if not statement_id:
       raise ValueError(f"Row {i+1} is missing 'participant_id'.")
-    if not statement_text:
-      raise ValueError(
-          f"Row {i+1} (ID: {statement_id}) is missing 'survey_text'."
-      )
+    statement_text = _survey_text_from_row(
+        statement_text, row_number=i + 1, statement_id=statement_id
+    )
 
     parsed_topics_from_csv: Optional[List[custom_types.Topic]] = None
     if csv_topics_string:
