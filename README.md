@@ -27,6 +27,7 @@ Please see these [docs](https://jigsaw-code.github.io/sensemaking-tools/docs/) f
 ## In This Repo
 
 - `library/`: Core TypeScript package, models, and runner CLIs (`@cosla/sensemaking-tools`).
+- `report_ui/`: Lightweight standalone HTML report builder (`@cosla/sensemaking-report-ui`); no Angular required.
 - `web-ui/`: Angular app for rendering interactive Sensemaker report outputs.
 - `visualization-library/`: Shared visualization components used by report presentation flows.
 - `models/`: Additional model/runtime assets and supporting resources.
@@ -213,7 +214,41 @@ Quick navigation:
 
 ![Example of webpage presenting the generated report](./assets/report-page.png)
 
-To build a webpage presenting the results of the report, follow these steps:
+### **Recommended: standalone HTML with `@cosla/sensemaking-report-ui`**
+
+For most use cases, build a single shareable HTML file with the lightweight report package. It has a small dependency footprint (no Angular) and inlines charts from `@cosla/sensemaker-visualizations`.
+
+1. Generate the JSON files with the [advanced runner](./library/runner-cli/advanced_runner.ts) (for example `output-topic-stats.json`, `output-comments-with-scores.json`, and `output-summary.json`).
+2. Create a small `metadata.json` with a report title, or pass `--reportTitle` on the command line:
+
+```json
+{ "title": "Title of Report" }
+```
+
+3. Run the report CLI (from any project that has the package installed, or via `npx`):
+
+```sh
+npx sensemaking-report-ui inline \
+  --topics <path-to-topic-stats-file> \
+  --summary <path-to-summary-file> \
+  --comments <path-to-comments-file> \
+  --metadata <path-to-metadata-file> \
+  --reportTitle "Title of Report" \
+  --outputDir ./output \
+  --outputFile report.html
+```
+
+Open `./output/report.html` in a browser. For full CLI options, fixtures, and parity notes, see [`report_ui/README.md`](./report_ui/README.md).
+
+From this monorepo you can also run the same build against fixtures:
+
+```sh
+npm run build --workspace=report_ui -- inline --inputDir ./report_ui/fixtures/happy-path --outputDir ./output
+```
+
+### **Alternative: full Angular web app (`web-ui`)**
+
+The `web-ui` package supports a richer Angular-based workflow (local dev server, Material styling). This requires more dependencies than `@cosla/sensemaking-report-ui`.
 
 * Generate the 3 JSON files produced by running the advanced runner CLI tool (mentioned previously).
 * From the command line, access the web app directory by running `cd web-ui` from the root directory.
@@ -223,7 +258,7 @@ npx ts-node site-build.ts --topics <path-to-topics-file> --summary <path-to-summ
 ```
 * Access the build (using `cd`) and start the web server by running `npm run dev`. Then access the site in a browser at `localhost:4200`.
 
-Alternatively, a single HTML file for the report can be produced, which can be easily shared.
+Alternatively, a single HTML file for the report can be produced from the Angular build, which can be easily shared.
 * After generating the build, run the following command (from `root > web-ui`):
 ```sh
 npx ts-node single-html-build.js
