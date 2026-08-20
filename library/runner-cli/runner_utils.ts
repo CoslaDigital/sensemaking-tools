@@ -35,23 +35,70 @@ import { marked } from "marked";
 import { createObjectCsvWriter } from "csv-writer";
 
 /**
- * Core comment columns, sans any vote tally rows
+ * Core comment columns, sans any vote tally rows.
+ * Id/text may use JS names (`comment-id`, `comment_text`) or Python-style
+ * aliases (`participant_id`, `survey_text`). Prefer JS names when both are present.
  */
-type CoreCommentCsvRow = {
-  index: number;
-  timestamp: number;
-  datetime: string;
-  "comment-id": number;
-  "author-id": number;
-  agrees: number;
-  disagrees: number;
-  moderated: number;
-  comment_text: string;
-  passes: number;
-  topics: string; // can contain both topics and subtopics
-  topic: string;
-  subtopic: string;
+export type CoreCommentCsvRow = {
+  index?: number;
+  timestamp?: number;
+  datetime?: string;
+  "comment-id"?: string | number;
+  participant_id?: string | number;
+  "author-id"?: string | number;
+  agrees?: number;
+  disagrees?: number;
+  moderated?: number;
+  comment_text?: string;
+  survey_text?: string;
+  passes?: number;
+  topics?: string; // can contain both topics and subtopics
+  topic?: string;
+  subtopic?: string;
 };
+
+function firstNonEmptyString(...values: Array<string | number | undefined | null>): string | undefined {
+  for (const value of values) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+    const text = String(value).trim();
+    if (text.length > 0) {
+      return text;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Resolves statement/response id from a CSV row.
+ * Prefers `comment-id` over `participant_id` when both are present.
+ */
+export function resolveCommentId(row: {
+  "comment-id"?: string | number;
+  participant_id?: string | number;
+}): string {
+  const id = firstNonEmptyString(row["comment-id"], row.participant_id);
+  if (!id) {
+    throw new Error("CSV row is missing both 'comment-id' and 'participant_id'.");
+  }
+  return id;
+}
+
+/**
+ * Resolves statement/response text from a CSV row.
+ * Prefers `comment_text` over `survey_text` when both are present.
+ */
+export function resolveCommentText(row: {
+  comment_text?: string;
+  survey_text?: string;
+}): string {
+  const text = firstNonEmptyString(row.comment_text, row.survey_text);
+  if (!text) {
+    throw new Error("CSV row is missing both 'comment_text' and 'survey_text'.");
+  }
+  return text;
+}
 
 // Make this interface require that key names look like `group-N-VOTE-count`
 type VoteTallyGroupKey =
@@ -328,8 +375,8 @@ export async function getCommentsFromCsv(inputFilePath: string): Promise<Comment
       .on("error", reject)
       .on("data", (row: CommentCsvRow) => {
         const newComment: Comment = {
-          text: row.comment_text,
-          id: row["comment-id"].toString(),
+          text: resolveCommentText(row),
+          id: resolveCommentId(row),
           voteInfo: getVoteInfoFromCsvRow(row, usesGroups, groupNames),
         };
         if (row.topics) {

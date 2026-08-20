@@ -20,11 +20,13 @@
 //  summaryAndSource.csv: a CSV of each paragraph of the summary and the comments
 //     associated with them.
 //
-// The input CSV is expected to have the following columns: comment-id, comment_text, and votes.
-// Vote data should be included in one of two forms - for data without group information the
-// columns should be: agrees, disagrees, and optionally passes. For data with group information
-// the columns should be: {group name}-agree-count, {group name}-disagree-count, and optionally
-// {group name}-pass-count for each group.
+// The input CSV is expected to have statement id and text columns: either comment-id and
+// comment_text, or the Python-style aliases participant_id and survey_text (participant_id is
+// the statement/response id, not the person). When both name sets are present, the JS column
+// names take precedence. Vote data should be included in one of two forms - for data without
+// group information the columns should be: agrees, disagrees, and optionally passes. For data
+// with group information the columns should be: {group name}-agree-count,
+// {group name}-disagree-count, and optionally {group name}-pass-count for each group.
 //
 // Sample Usage:
 //  npx ts-node ./library/runner-cli/runner.ts --outputBasename out \

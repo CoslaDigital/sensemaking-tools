@@ -22,11 +22,13 @@
 //        comment is filtered out.
 // - the summary object as a JSON which includes the section titles, text, and cited comment ids.
 //
-// The input CSV is expected to have the following columns: comment-id, comment_text, and topics.
-// Vote data should also be included, for data without group information the columns should be:
-// agrees, disagrees, and optionally passes. For data with group information the columns should be:
-// {group name}-agree-count, {group name}-disagree-count, and optionally {group name}-pass-count
-// for each group.
+// The input CSV is expected to have statement id and text columns: either comment-id and
+// comment_text, or the Python-style aliases participant_id and survey_text (participant_id is
+// the statement/response id, not the person), plus topics. When both name sets are present, the
+// JS column names take precedence. Vote data should also be included, for data without group
+// information the columns should be: agrees, disagrees, and optionally passes. For data with
+// group information the columns should be: {group name}-agree-count,
+// {group name}-disagree-count, and optionally {group name}-pass-count for each group.
 //
 // Sample Usage:
 // time npx ts-node ./runner-cli/advanced_runner.ts --outputBasename final-copy \

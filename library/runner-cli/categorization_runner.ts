@@ -14,8 +14,11 @@
 
 // Learns and assigns topics and subtopics to a CSV of comments.
 //
-// The input CSV must contain "comment_text" and "comment-id" fields. The output CSV will contain
-// all input fields plus a new "topics" field which concatenates all topics and subtopics, e.g.
+// The input CSV must contain statement id and text columns: either "comment-id" and
+// "comment_text", or the Python-style aliases "participant_id" and "survey_text"
+// (participant_id is the statement/response id, not the person). When both name sets
+// are present, the JS column names take precedence. The output CSV will contain all
+// input fields plus a new "topics" field which concatenates all topics and subtopics, e.g.
 // "Transportation:PublicTransit;Transportation:Parking;Technology:Internet"
 //
 // Sample Usage:
@@ -32,7 +35,7 @@ import { parse } from "csv-parse";
 import { createObjectCsvWriter } from "csv-writer";
 import * as fs from "fs";
 import * as path from "path";
-import { concatTopics } from "./runner_utils";
+import { concatTopics, resolveCommentId, resolveCommentText } from "./runner_utils";
 import {
   addSensemakerModelOptions,
   createModelFromCliOptions,
@@ -42,9 +45,12 @@ import {
 } from "./sensemaker_model_cli";
 
 type CommentCsvRow = {
-  "comment-id": string;
-  comment_text: string;
-  topics: string;
+  "comment-id"?: string | number;
+  participant_id?: string | number;
+  comment_text?: string;
+  survey_text?: string;
+  topics?: string;
+  [key: string]: string | number | undefined;
 };
 
 async function main(): Promise<void> {
@@ -135,18 +141,18 @@ function convertCsvRowsToComments(csvRows: CommentCsvRow[]): Comment[] {
   const comments: Comment[] = [];
   for (const row of csvRows) {
     comments.push({
-      text: row["comment_text"],
-      id: row["comment-id"],
+      text: resolveCommentText(row),
+      id: resolveCommentId(row),
     });
   }
   return comments;
 }
 
 function setTopics(csvRows: CommentCsvRow[], categorizedComments: Comment[]): CommentCsvRow[] {
-  // Create a map from comment-id to csvRow
+  // Create a map from statement id to csvRow
   const mapIdToCsvRow: { [commentId: string]: CommentCsvRow } = {};
   for (const csvRow of csvRows) {
-    const commentId = csvRow["comment-id"];
+    const commentId = resolveCommentId(csvRow);
     mapIdToCsvRow[commentId] = csvRow;
   }
 

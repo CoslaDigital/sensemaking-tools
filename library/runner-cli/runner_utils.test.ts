@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { getCommentsFromCsv, parseTopicsString } from "./runner_utils";
+import { getCommentsFromCsv, parseTopicsString, resolveCommentId, resolveCommentText } from "./runner_utils";
 import { Comment, VoteTally } from "../src/types";
 import { Readable } from "stream";
 
@@ -102,6 +102,66 @@ describe("getCommentsFromCsv", () => {
     expect(comments[1].id).toBe("2");
     expect(comments[1].text).toBe("comment2");
     expect(comments[1].voteInfo).toEqual(new VoteTally(2, 5, 3));
+  });
+
+  it("should read comments using participant_id and survey_text aliases", async () => {
+    const mockCsvContent = `participant_id,survey_text,agrees,disagrees,passes
+comment_1,comment1,10,5,0
+comment_2,comment2,2,5,3`;
+    mockFs.__setMockHeaderData(mockCsvContent.split("\n")[0]);
+    mockFs.__setMockCsvData(mockCsvContent);
+
+    const comments: Comment[] = await getCommentsFromCsv(mockFilePath);
+
+    expect(comments).toHaveLength(2);
+    expect(comments[0].id).toBe("comment_1");
+    expect(comments[0].text).toBe("comment1");
+    expect(comments[0].voteInfo).toEqual(new VoteTally(10, 5, 0));
+    expect(comments[1].id).toBe("comment_2");
+    expect(comments[1].text).toBe("comment2");
+    expect(comments[1].voteInfo).toEqual(new VoteTally(2, 5, 3));
+  });
+});
+
+describe("resolveCommentId", () => {
+  it("uses comment-id when only JS columns are present", () => {
+    expect(resolveCommentId({ "comment-id": "1" })).toBe("1");
+  });
+
+  it("uses participant_id when only the Python alias is present", () => {
+    expect(resolveCommentId({ participant_id: "comment_1" })).toBe("comment_1");
+  });
+
+  it("prefers comment-id when both id columns are present", () => {
+    expect(resolveCommentId({ "comment-id": "js-id", participant_id: "py-id" })).toBe("js-id");
+  });
+
+  it("throws when both id columns are missing", () => {
+    expect(() => resolveCommentId({})).toThrow(
+      "CSV row is missing both 'comment-id' and 'participant_id'."
+    );
+  });
+});
+
+describe("resolveCommentText", () => {
+  it("uses comment_text when only JS columns are present", () => {
+    expect(resolveCommentText({ comment_text: "hello" })).toBe("hello");
+  });
+
+  it("uses survey_text when only the Python alias is present", () => {
+    expect(resolveCommentText({ survey_text: "hello" })).toBe("hello");
+  });
+
+  it("prefers comment_text when both text columns are present", () => {
+    expect(resolveCommentText({ comment_text: "js text", survey_text: "py text" })).toBe(
+      "js text"
+    );
+  });
+
+  it("throws when both text columns are missing", () => {
+    expect(() => resolveCommentText({})).toThrow(
+      "CSV row is missing both 'comment_text' and 'survey_text'."
+    );
   });
 });
 
