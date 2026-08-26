@@ -282,7 +282,7 @@ The script follows a recursive summarization process to ensure accuracy:
 
 #### 5\. Interactive Report
 
-In order to build the web interface to explore the summarized data, begin by **copying  the processed data** into the UI input folder.
+In order to build the web interface to explore the summarized data, begin by **copying the processed data** into the UI input folder.
 
 ```shell
 cp <OUTPUT_DIR>/bridging_scores.csv src/report_ui/input/opinions.csv
@@ -298,22 +298,47 @@ You can edit `src/report_ui/input/config.json` to customize the report. Key opti
 * `overview_chart`: Set the display mode for the main chart (`"toggle"`, `"topics"`, or `"opinions"`).
 * `number_of_sample_quotes`: Control how many quote previews to display for each opinion.
 * `chart_colors`: Provide an array of hex color codes to customize the chart palette.
+* `demographic_colors`: Provide an array of hex color codes to customize the participant chart palette.
 * `excludedTopics`: Add topic names to this array to hide them from the report.
 * `excludedOpinions`: Add opinion names to this array to hide them from the report.
 * *For a full list of configuration options, check the `README.md` file in `src/report_ui/`.*
-3. **Install dependencies**:
+
+##### **Add Advanced Features (Optional)**:
+
+You can enhance your report by configuring two additional features before building:
+
+1. **Demographic Support:** Add demographic dimensions by prefixing columns in `opinions.csv` with `demo:` (e.g. `demo:Age` or `demo:Location`). The tool builds a demographic breakdown chart and quote filters from these columns.
+2. **Predicted Agreement (Propositions):** After generating propositions, feature them in a dedicated "Predicted Agreement" tab. Create `src/report_ui/input/predicted.json` structured like this:
+```json
+{
+  "text": "Introductory text for the predicted agreement tab.",
+  "sub_contents": [
+    {
+      "title": "## Topic Name",
+      "text": "Optional context for this topic.",
+      "statements": [
+        {
+          "text": "The text of the proposition/statement",
+          "predicted_agreement": 85
+        }
+      ]
+    }
+  ]
+}
+```
+
+##### **View and Build the Report**:
 
 ```shell
 cd src/report_ui
 npm install
 ```
 
-##### **View and Build the Report**:
-
-4. **Local Viewing**: Run `npm run dev` to start a local web server to view the report.
-5. **Web Server Deployment**: Run `npm run build` to output a version optimized for delivery via a web server to `src/report_ui/output/static`.
-6. **Offline Viewing**: Run `npm run inline` to output a self-contained version of the report to `src/report_ui/output/inline`.
+1. **Web Server Deployment (Static)**: Run `npm run build` to output a version optimized for delivery via a web server to `src/report_ui/output/static`.
+2. **Offline Viewing (Inline)**: Run `npm run inline` to output a self-contained version of the report to `src/report_ui/output/inline`.
    * *Note: This may not be suitable for larger conversations.*
+
+*(Optional) Local Development:* Run `npm run dev` for a live local server during development.
 
 #### 6\. Proposition Generation & Simulated Juries
 
