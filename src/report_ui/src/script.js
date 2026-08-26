@@ -63,6 +63,49 @@
 window.PAYLOAD = window.PAYLOAD || {};
 // console.log(window.PAYLOAD);
 
+const i18n = window.PAYLOAD.i18n || {};
+const numberFormatter = new Intl.NumberFormat(i18n.locale || "en");
+const percentFormatter = new Intl.NumberFormat(i18n.locale || "en", {
+  style: "percent",
+  maximumFractionDigits: 1,
+});
+
+/**
+ * Formats a number according to the active locale.
+ * @param {number} num
+ * @returns {string}
+ */
+function formatNumber(num) {
+  return numberFormatter.format(num);
+}
+
+/**
+ * Formats a value as a localized percentage string.
+ * @param {number|string} value
+ * @returns {string}
+ */
+function formatPercent(value) {
+  if (value == null || value === "") return "";
+  const num = Number(value);
+  if (isNaN(num)) return "";
+  const ratio = num > 1 ? num / 100 : num;
+  return percentFormatter.format(ratio);
+}
+
+/**
+ * Formats a count into a localized quotes string (e.g. "3 Quotes" or "3 citas").
+ * @param {number|string} count
+ * @returns {string}
+ */
+function formatQuotes(count) {
+  const formattedCount =
+    typeof count === "number" ? formatNumber(count) : count;
+  return (i18n.sections?.quotesCount || "{count} Quotes").replace(
+    "{count}",
+    formattedCount,
+  );
+}
+
 /**
  * Default color palette used for visualizing different topics.
  * @constant {string[]}
@@ -131,9 +174,14 @@ function createDemographicChart({ id, data }) {
       : 800;
 
     data.forEach((demographic) => {
+      const otherCategory = (
+        i18n.chart?.otherCategory || "Other"
+      ).toLowerCase();
+      const isOther = (val) =>
+        val.toLowerCase() === "other" || val.toLowerCase() === otherCategory;
       const sortedValues = [...demographic.values].sort((a, b) => {
-        if (a.value.toLowerCase() === "other") return 1;
-        if (b.value.toLowerCase() === "other") return -1;
+        if (isOther(a.value)) return 1;
+        if (isOther(b.value)) return -1;
         return d3.ascending(a.value.toLowerCase(), b.value.toLowerCase());
       });
 
@@ -217,7 +265,7 @@ function createDemographicChart({ id, data }) {
         item
           .append("span")
           .attr("class", "legend-text")
-          .html(`<strong>${d.value}</strong> ${d._pct}%`);
+          .html(`<strong>${d.value}</strong> ${formatPercent(d._pct)}`);
       });
     });
   };
@@ -276,7 +324,7 @@ function getTopicData() {
             return {
               ...opinion,
               count: matched.length,
-              countFormatted: d3.format(",")(matched.length),
+              countFormatted: formatNumber(matched.length),
             };
           })
           .filter((o) => o.count > 0);
@@ -288,13 +336,14 @@ function getTopicData() {
           opinionCount: filteredOpinions.length,
           rawQuoteCount,
           quoteCount: rawQuoteCount,
-          quoteCountFormatted: d3.format(",")(rawQuoteCount),
+          quoteCountFormatted: formatNumber(rawQuoteCount),
         };
       })
       .filter((t) => t.rawQuoteCount > 0);
 
+    const groupPrefix = i18n.filterModal?.groupLabelPrefix || "Group";
     return {
-      label: `Group ${GROUP_LABELS[i]}`,
+      label: `${groupPrefix} ${GROUP_LABELS[i]}`,
       description: groupDescription(group),
       topics,
     };
@@ -342,11 +391,15 @@ function createTopicChart() {
 
       const wrapper = containerSel.append("div").attr("class", "topic-wrapper");
 
+      const opinionsCountText = (
+        i18n.chart?.opinionsMeta || "({count} opinions)"
+      ).replace("{count}", formatNumber(refTopic.opinionCount));
+
       wrapper
         .append("div")
         .attr("class", "topic-header")
         .html(
-          `${refTopic.text} <span class="topic-meta">(${refTopic.opinionCount} opinions)</span>`,
+          `${refTopic.text} <span class="topic-meta">${opinionsCountText}</span>`,
         );
 
       groups.forEach(({ label, topics, description }) => {
@@ -416,17 +469,22 @@ function createTopicChart() {
           .attr("data-tippy-content", (d) => {
             return `
               <div class="topic-text">${topic.text}</div>
-              <div class="quote-count">${d.countFormatted} Quotes</div>
+              <div class="quote-count">${formatQuotes(d.count)}</div>
               <div class="opinion-text">${d.text}</div>
             `;
           })
           .style("cursor", "pointer");
 
+        const quotesLabel = formatQuotes(
+          topic.quoteCountFormatted || formatNumber(topic.quoteCount),
+        );
+        const lowSampleText = i18n.chart?.lowSampleSize || "Low sample size";
+
         groupRow
           .append("div")
           .attr("class", "topic-group-count")
           .html(
-            `${topic.quoteCountFormatted} Quotes${topic.quoteCount < lowSampleThreshold ? `<img src="svg/exclamation.svg" alt="" role="presentation" data-tippy-content="<div class='low-sample'>Low sample size</div>" />` : ""}`,
+            `${quotesLabel}${topic.quoteCount < lowSampleThreshold ? `<img src="svg/exclamation.svg" alt="" role="presentation" data-tippy-content="<div class='low-sample'>${lowSampleText}</div>" />` : ""}`,
           );
       });
     });
@@ -569,6 +627,8 @@ function createOpinionChart() {
         const op = groupOpinionMaps[gi].get(fullID);
         const count = op?.count ?? 0;
         const countFormatted = op?.countFormatted ?? "0";
+        const quotesLabel = formatQuotes(countFormatted);
+        const lowSampleText = i18n.chart?.lowSampleSize || "Low sample size";
 
         const groupRow = opinionRow.append("div").attr("class", "topic-group");
 
@@ -597,7 +657,7 @@ function createOpinionChart() {
             "data-tippy-content",
             `
             <div class="topic-text">${refOp.topicText}</div>
-            <div class="quote-count">${countFormatted} Quotes</div>
+            <div class="quote-count">${quotesLabel}</div>
             <div class="opinion-text">${refOp.text}</div>
           `,
           )
@@ -612,7 +672,7 @@ function createOpinionChart() {
           .append("div")
           .attr("class", "topic-group-count")
           .html(
-            `${countFormatted} Quotes${count < lowSampleThreshold ? `<img src="svg/exclamation.svg" alt="" role="presentation" data-tippy-content="<div class='low-sample'>Low sample size</div>" />` : ""}`,
+            `${quotesLabel}${count < lowSampleThreshold ? `<img src="svg/exclamation.svg" alt="" role="presentation" data-tippy-content="<div class='low-sample'>${lowSampleText}</div>" />` : ""}`,
           );
       });
     });
@@ -726,7 +786,7 @@ function createDonutChart(topicData, index) {
         const opinion = d.data;
         return `
 					<div class="topic-text">${topicData.text}</div>
-					<div class="quote-count">${opinion.countFormatted} Quotes</div>
+					<div class="quote-count">${formatQuotes(opinion.countFormatted || opinion.count)}</div>
 					<div class="opinion-text">${opinion.text}</div>
         `;
       });
@@ -764,14 +824,16 @@ function createDonutCharts() {
  */
 function renderQuotesDrawer({ quotes, text }) {
   const drawerSel = d3.select("#drawer");
-  const quoteCount = d3.format(",")(quotes.length);
+  const quoteCount = formatNumber(quotes.length);
   drawerSel.select(".drawer-quote-count").text(quoteCount);
   drawerSel.select(".drawer-opinion").text(text);
   const quotesList = drawerSel.select(".drawer-quotes");
   quotesList.html("");
 
   if (!quotes.length) {
-    quotesList.html("<li>No quotes for the selected filters.</li>");
+    const noQuotesText =
+      i18n.drawer?.noQuotes || "No quotes for the selected filters.";
+    quotesList.html(`<li>${noQuotesText}</li>`);
   } else {
     // const demoProps = window.PAYLOAD.demographics.map((d) => d.label);
     quotes.forEach((q) => {
@@ -793,8 +855,9 @@ function renderQuotesDrawer({ quotes, text }) {
  * Call this whenever `currentDrawerId` or `currentDrawerFilters` changes.
  */
 function updateQuotesDrawer() {
+  const unknownOpinionText = i18n.drawer?.unknownOpinion || "Unknown Opinion";
   const match = flatOpinions.find((o) => o.fullID === currentDrawerId);
-  const text = match?.text || "Unknown Opinion";
+  const text = match?.text || unknownOpinionText;
   const quotesRaw = quoteMap.get(currentDrawerId);
   const quotes =
     currentDrawerFilters.length === 0
@@ -807,8 +870,9 @@ function updateQuotesDrawer() {
 
 function createQuotesDrawerParticipantChart() {
   const id = "drawer-demographics-chart";
+  const unknownOpinionText = i18n.drawer?.unknownOpinion || "Unknown Opinion";
   const match = flatOpinions.find((o) => o.fullID === currentDrawerId);
-  const text = match?.text || "Unknown Opinion";
+  const text = match?.text || unknownOpinionText;
   const quotesRaw = quoteMap.get(currentDrawerId);
 
   const data = window.PAYLOAD.demographics.map(({ label }) => {
@@ -825,7 +889,8 @@ function createQuotesDrawerParticipantChart() {
 
     if (values.length > 6) {
       const otherCount = values.slice(5).reduce((acc, v) => acc + v.count, 0);
-      values = [...values.slice(0, 5), { value: "Other", count: otherCount }];
+      const otherText = i18n.chart?.otherCategory || "Other";
+      values = [...values.slice(0, 5), { value: otherText, count: otherCount }];
     }
     return { label, values };
   });
@@ -929,11 +994,13 @@ async function createFilterCompare() {
 
       const header = card.append("div").attr("class", "filter-group-header");
 
+      const groupPrefix = i18n.filterModal?.groupLabelPrefix || "Group";
       header
         .append("span")
         .attr("class", "filter-group-label")
-        .text(`Group ${GROUP_LABELS[gi]}`);
+        .text(`${groupPrefix} ${GROUP_LABELS[gi]}`);
 
+      const deleteGroupText = i18n.filterModal?.deleteGroup || "Delete group";
       header
         .append("button")
         .attr(
@@ -941,7 +1008,7 @@ async function createFilterCompare() {
           `ghost button-delete-group${compareGroups.length <= 1 ? " is-hidden" : ""}`,
         )
         .html(
-          `<img src="svg/trash.svg" alt="" role="presentation"> Delete group`,
+          `<img src="svg/trash.svg" alt="" role="presentation"> ${deleteGroupText}`,
         )
         .on("click", () => {
           compareGroups.splice(gi, 1);
@@ -974,7 +1041,8 @@ async function createFilterCompare() {
           .append("select")
           .attr("id", selectId)
           .attr("data-key", label);
-        sel.append("option").attr("value", "").text("Any");
+        const anyOptionText = i18n.filterModal?.anyOption || "Any";
+        sel.append("option").attr("value", "").text(anyOptionText);
         values.forEach(({ value }) => {
           sel
             .append("option")
@@ -987,9 +1055,11 @@ async function createFilterCompare() {
           const val = this.value;
           compareGroups[gi] = compareGroups[gi].filter((f) => f.key !== key);
           if (val) compareGroups[gi].push({ key, value: val });
+          const allParticipantsText =
+            i18n.filterModal?.allParticipants || "All Participants";
           const updated =
             compareGroups[gi].length === 0
-              ? "All Participants"
+              ? allParticipantsText
               : compareGroups[gi].map((f) => `${f.key}: ${f.value}`).join(", ");
           card.select(".filter-group-summary").text(updated);
         });
