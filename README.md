@@ -173,7 +173,7 @@ These flags work on LLM-backed pipeline steps: `categorization_runner`, `get_bri
 * `--model_name <model>` — model id for the selected adapter
 * `--api_key <token>` — optional; otherwise uses `GEMINI_API_KEY` (or legacy `GOOGLE_API_KEY` for gemini), `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or `MISTRAL_API_KEY` (not used for `vertex`)
 
-**Refine propositions (`sensemaking-refine-propositions`)** uses `--model_name` as the default for all LLM stages. Override per stage with `--simulated_jury_model_name` (jury voting) or `--nuanced_propositions_model_name` (nuanced generation/deduplication). If neither global nor stage flags are set, defaults are `gemini-2.5-flash-lite` (jury) and `gemini-2.5-pro` (nuanced).
+**Refine propositions (`sensemaking-refine-propositions`)** uses `--model_name` as the default for all LLM stages. Override per stage with `--simulated_jury_model_name` (jury voting) or `--nuanced_propositions_model_name` (nuanced generation/deduplication). If neither global nor stage flags are set, defaults are `gemini-2.5-flash-lite` (jury) and `gemini-3.5-flash` (nuanced).
 
 OpenRouter example:
 
@@ -358,7 +358,7 @@ sensemaking-world-model --query all_nuanced --output_format csv \
 ```shell
 python -m src.proposition_simplification_runner \
 --input_csv <INPUT_CSV> --output_csv <OUTPUT_CSV> \
---gemini_api_key "$GEMINI_API_KEY" --model_name gemini-2.5-pro
+--gemini_api_key "$GEMINI_API_KEY" --model_name gemini-3.5-flash
 ```
 
 INPUT\_CSV should contain a single column called "original" with the original proposition text.  The OUTPUT\_CSV contains an additional column called "simplification" with the rewritten proposition.
@@ -379,12 +379,11 @@ python3 -m src.simulated_jury.main \
 
 ### Case Studies
 
-Jigsaw explored the application of AI to public opinion research through two proofs of concept, [What Could BG Be?](https://jigsaw.google/our-work/reimagining-the-town-hall-meeting/) and [We the People](https://jigsaw.google/our-work/scaling-traditional-focus-groups/).
+Jigsaw explored the application of AI to public opinion research through two proofs of concept, [What Could BG Be?](https://jigsaw.google/our-work/reimagining-the-town-hall-meeting/) and [We the People](https://jigsaw.google/our-work/scaling-traditional-focus-groups/). Archived case study code lives in the separate [sensemaking-case-studies](https://github.com/Jigsaw-Code/sensemaking-case-studies/) repository.
 
-What Could BG Be? was a month-long public consultation crowdsourcing ideas to inform the 25-year plan for Warren County, Kentucky. [Visit the case study section of this repository to learn more about the project and explore the code base](case_studies/wcbgb/).
+What Could BG Be? was a month-long public consultation crowdsourcing ideas to inform the 25-year plan for Warren County, Kentucky.
 
-We the People was a nationally representative public opinion research initiative, combining the depth of focus groups with the breadth of polls with an aim to identify areas of broad public agreement on the topic of freedom and equality in America. Replication code for this project will be released soon.
-
+We the People was a nationally representative public opinion research initiative, combining the depth of focus groups with the breadth of polls with an aim to identify areas of broad public agreement on the topic of freedom and equality in America.
 ## Our Approach
 
 The tools here show how Jigsaw is approaching the application of AI to the emerging field of “sensemaking.” It is offered as an insight into our experimental methods. While parts of this library may be adaptable for other projects, developers should anticipate their own work for implementation, customization, and ongoing support for their specific use case.

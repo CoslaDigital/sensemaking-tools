@@ -81,7 +81,7 @@ def pipeline_stage(name=None, check_fn=None):
 
 
 DEFAULT_SIMULATED_JURY_MODEL = "gemini-2.5-flash-lite"
-DEFAULT_NUANCED_PROPOSITIONS_MODEL = "gemini-2.5-pro"
+DEFAULT_NUANCED_PROPOSITIONS_MODEL = "gemini-3.5-flash"
 
 
 def resolve_refine_stage_model(

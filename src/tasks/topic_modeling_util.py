@@ -203,7 +203,7 @@ async def _merge_topics(
       merge_instructions, combined_topics, additional_context
   )
 
-  resp = await model.call_gemini(
+  resp = await model.generate_content(
       prompt=prompt_str,
       run_name="merge_topics",
       response_schema=schema_to_expect,
@@ -314,7 +314,7 @@ async def merge_opinions(
       merge_instructions, combined_opinions, additional_context
   )
 
-  resp = await model.call_gemini(
+  resp = await model.generate_content(
       prompt=prompt_str,
       run_name="merge_opinions",
       response_schema=schema_to_expect,

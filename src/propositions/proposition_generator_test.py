@@ -325,7 +325,7 @@ class WorldModelBuilderTest(unittest.TestCase):
     mock_create_llm.assert_called_once()
     call_kwargs = mock_create_llm.call_args.kwargs
     self.assertEqual(call_kwargs.get("api_key"), "test_key")
-    self.assertEqual(call_kwargs.get("model_name"), "gemini-2.5-pro")
+    self.assertEqual(call_kwargs.get("model_name"), "gemini-3.5-flash")
     self.assertEqual(
         mock_model_instance.calculate_token_count_needed.call_count, 5
     )

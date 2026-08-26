@@ -129,7 +129,7 @@ class GenaiModelAsyncMethodsTest(unittest.TestCase):
     self.assertEqual(token_count, 123)
     mock_client_instance.models.count_tokens.assert_called_once()
 
-  def test_call_gemini_success(self, mock_genai_client):
+  def test_generate_content_success(self, mock_genai_client):
     """Tests a successful call to the Gemini API."""
     mock_client_instance = mock_genai_client.return_value
     mock_client_instance.aio.models.generate_content = mock.AsyncMock()
@@ -151,7 +151,7 @@ class GenaiModelAsyncMethodsTest(unittest.TestCase):
     )
 
     model = genai_model.GenaiModel(gemini_api_key='test_key', model_name='test_model')
-    result = asyncio.run(model.call_gemini(prompt='test', run_name='test_run'))
+    result = asyncio.run(model.generate_content(prompt='test', run_name='test_run'))
 
     self.assertEqual(result['text'], 'Success response')
     self.assertEqual(result['total_token_count'], 456)
@@ -161,7 +161,7 @@ class GenaiModelAsyncMethodsTest(unittest.TestCase):
     self.assertEqual(result['thoughts_token_count'], 1)
     self.assertIsNone(result['error'])
 
-  def test_call_gemini_safety_failure(self, mock_genai_client):
+  def test_generate_content_safety_failure(self, mock_genai_client):
     """Tests an API call blocked due to safety reasons."""
     mock_client_instance = mock_genai_client.return_value
     mock_client_instance.aio.models.generate_content = mock.AsyncMock()
@@ -178,18 +178,18 @@ class GenaiModelAsyncMethodsTest(unittest.TestCase):
     )
 
     model = genai_model.GenaiModel(gemini_api_key='test_key', model_name='test_model')
-    result = asyncio.run(model.call_gemini(prompt='test', run_name='test_run'))
+    result = asyncio.run(model.generate_content(prompt='test', run_name='test_run'))
 
     self.assertEqual(result['error'], 'SAFETY')
     self.assertEqual(result['finish_message'], 'Blocked for safety')
 
-  def test_call_gemini_empty_prompt(self, mock_genai_client):
+  def test_generate_content_empty_prompt(self, mock_genai_client):
     """Tests a call to the Gemini API with an empty prompt."""
     model = genai_model.GenaiModel(gemini_api_key='test_key', model_name='test_model')
     with self.assertRaises(ValueError):
-      asyncio.run(model.call_gemini(prompt=None, run_name='test_run'))
+      asyncio.run(model.generate_content(prompt=None, run_name='test_run'))
 
-  def test_call_gemini_no_candidate(self, mock_genai_client):
+  def test_generate_content_no_candidate(self, mock_genai_client):
     """Tests a call to the Gemini API with no candidates."""
     mock_client_instance = mock_genai_client.return_value
     mock_client_instance.aio.models.generate_content = mock.AsyncMock()
@@ -201,15 +201,15 @@ class GenaiModelAsyncMethodsTest(unittest.TestCase):
         mock_response
     )
     model = genai_model.GenaiModel(gemini_api_key='test_key', model_name='test_model')
-    result = asyncio.run(model.call_gemini(prompt='test', run_name='test_run'))
+    result = asyncio.run(model.generate_content(prompt='test', run_name='test_run'))
     self.assertEqual(result['error'], '<test> No candidates found')
 
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   def test_process_prompts_all_succeed(
-      self, mock_call_gemini, mock_genai_client
+      self, mock_generate_content, mock_genai_client
   ):
     """Tests when all jobs succeed on the first attempt."""
-    mock_call_gemini.return_value = {
+    mock_generate_content.return_value = {
         'text': 'parsed',
         'total_token_count': 10,
         'prompt_token_count': 7,
@@ -232,17 +232,17 @@ class GenaiModelAsyncMethodsTest(unittest.TestCase):
     )
 
     self.assertEqual(len(results_df), 3)
-    self.assertEqual(mock_call_gemini.call_count, 3)
+    self.assertEqual(mock_generate_content.call_count, 3)
     self.assertTrue(all(results_df['failed_tries'].apply(lambda d: d.empty)))
     self.assertIn('parsed_Opinion 1', results_df['result'].tolist())
 
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   def test_process_prompts_with_retry(
-      self, mock_call_gemini, mock_genai_client
+      self, mock_generate_content, mock_genai_client
   ):
     """Tests when one job succeeds after a retry."""
     # Fail for Opinion 2 on the first call, then succeed
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         {
             'text': 'parsed',
             'total_token_count': 10,
@@ -286,18 +286,18 @@ class GenaiModelAsyncMethodsTest(unittest.TestCase):
     )
 
     self.assertEqual(len(results_df), 3)
-    self.assertEqual(mock_call_gemini.call_count, 4)
+    self.assertEqual(mock_generate_content.call_count, 4)
 
     failed_job_row = results_df[results_df['opinion'] == 'Opinion 2'].iloc[0]
     self.assertEqual(len(failed_job_row['failed_tries']), 1)
     self.assertEqual(failed_job_row['result'], 'parsed_retry_Opinion 2')
 
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   def test_process_prompts_permanent_failure(
-      self, mock_call_gemini, mock_genai_client
+      self, mock_generate_content, mock_genai_client
   ):
     """Tests when one job fails all retry attempts."""
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         {
             'text': 'parsed',
             'total_token_count': 10,
@@ -330,19 +330,19 @@ class GenaiModelAsyncMethodsTest(unittest.TestCase):
     )
 
     self.assertEqual(len(results_df), 3)
-    self.assertEqual(mock_call_gemini.call_count, 4)
+    self.assertEqual(mock_generate_content.call_count, 4)
     # Verify the failed job is present and has an error
     failed_job = results_df[results_df['job_id'] == 1].iloc[0]
     self.assertIn('Failed after 2 attempts', str(failed_job['result']))
 
   @mock.patch('src.models.genai_model.logging.error')
   @mock.patch('src.models.genai_model.logging.debug')
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   def test_process_prompts_logging_levels(
-      self, mock_call_gemini, mock_debug, mock_error, mock_genai_client
+      self, mock_generate_content, mock_debug, mock_error, mock_genai_client
   ):
     """Tests that intermediate failures log as debug and permanent failures log as error."""
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         Exception('API Error 1'),  # Job 1, Attempt 1 (intermediate failure)
         Exception('API Error 2'),  # Job 1, Attempt 2 (permanent failure)
     ]
@@ -399,16 +399,16 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
     self.prompts = [{'prompt': 'test prompt'}]
 
   @mock.patch('asyncio.sleep', new_callable=mock.AsyncMock)
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   def test_service_unavailable_triggers_backoff_and_recovers(
-      self, mock_call_gemini, mock_sleep
+      self, mock_generate_content, mock_sleep
   ):
     """Tests that a 503 ServiceUnavailable error triggers an exponential backoff
 
     and that the system recovers and succeeds on the next attempt.
     """
     # Setup: Fail first, then succeed
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         {'error': google_exceptions.ServiceUnavailable('Service is down')},
         {
             'text': 'Success',
@@ -435,19 +435,19 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
 
     # Check that global pause was triggered (restored logic starts at 2s)
     self.assertIn(mock.call(2), mock_sleep.call_args_list)
-    self.assertEqual(mock_call_gemini.call_count, 2)
+    self.assertEqual(mock_generate_content.call_count, 2)
 
     # Check that the per-job retry counter was NOT incremented for a 503 error
     self.assertEqual(len(results_df.iloc[0]['failed_tries']), 0)
 
   @mock.patch('asyncio.sleep', new_callable=mock.AsyncMock)
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   def test_backoff_delay_increases_exponentially(
-      self, mock_call_gemini, mock_sleep
+      self, mock_generate_content, mock_sleep
   ):
     """Tests that the backoff delay squares on repeated failures."""
     # Setup: Fail twice, then succeed
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         {'error': google_exceptions.ServiceUnavailable('Service is down')},
         {
             'error': google_exceptions.ServiceUnavailable(
@@ -480,8 +480,8 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
     self.assertIn(mock.call(4), mock_sleep.call_args_list)
 
   @mock.patch('asyncio.sleep', new_callable=mock.AsyncMock)
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
-  def test_backoff_delay_is_capped(self, mock_call_gemini, mock_sleep):
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
+  def test_backoff_delay_is_capped(self, mock_generate_content, mock_sleep):
     """Tests that the backoff delay does not exceed the maximum."""
 
     # Setup: Fail enough times to hit the 64s cap, then succeed
@@ -489,7 +489,7 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
     # 2: 4s delay
     # 3: 16s delay
     # 4-16: 64s delay (capped)
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         {'error': google_exceptions.ServiceUnavailable('Service is down')}
         for _ in range(16)
     ] + [
@@ -521,9 +521,9 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
     )
 
   @mock.patch('asyncio.sleep', new_callable=mock.AsyncMock)
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   async def test_quota_error_triggers_global_pause(
-      self, mock_call_gemini, mock_sleep
+      self, mock_generate_content, mock_sleep
   ):
     """Tests that a 429 Quota error triggers a global pause and the job retries."""
 
@@ -550,7 +550,7 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
     )
 
     # Setup: Fail first with quota error, then succeed
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         {'error': mock_error},
         {
             'text': 'Success',
@@ -576,15 +576,15 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
 
     # Check that global pause was triggered with the correct delay (RetryInfo 10s + 1s offset)
     self.assertIn(mock.call(11), mock_sleep.call_args_list)
-    self.assertEqual(mock_call_gemini.call_count, 2)
+    self.assertEqual(mock_generate_content.call_count, 2)
 
     # Check that the per-job retry counter was NOT incremented for a quota error
     self.assertEqual(len(results_df.iloc[0]['failed_tries']), 0)
 
   @mock.patch('asyncio.sleep', new_callable=mock.AsyncMock)
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   async def test_service_unavailable_triggers_global_pause(
-      self, mock_call_gemini, mock_sleep
+      self, mock_generate_content, mock_sleep
   ):
     """Tests that a 503 Service Unavailable error triggers a global pause."""
 
@@ -596,7 +596,7 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
     mock_error = MockServerError('Service Unavailable', mock_response)
 
     # Setup: Fail first with 503, then succeed
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         {'error': mock_error},
         {
             'text': 'Success',
@@ -622,12 +622,12 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
 
     # Check that global pause was triggered with the correct delay (Restored logic starts at 2s)
     self.assertIn(mock.call(2), mock_sleep.call_args_list)
-    self.assertEqual(mock_call_gemini.call_count, 2)
+    self.assertEqual(mock_generate_content.call_count, 2)
 
   @mock.patch('asyncio.sleep', new_callable=mock.AsyncMock)
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   async def test_concurrent_infrastructure_errors_all_retry(
-      self, mock_call_gemini, mock_sleep
+      self, mock_generate_content, mock_sleep
   ):
     """Tests that multiple concurrent 503 errors only trigger ONE pause and ALL retry."""
 
@@ -639,7 +639,7 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
 
     # Setup: 3 jobs all fail once with 503, then all succeed
     # We expect 6 calls total (3 failures, 3 successes)
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         {'error': mock_error},
         {'error': mock_error},
         {'error': mock_error},
@@ -699,23 +699,23 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
     self.assertEqual(mock_sleep.call_args_list.count(mock.call(2)), 1)
 
     # Total calls should be 6
-    self.assertEqual(mock_call_gemini.call_count, 6)
+    self.assertEqual(mock_generate_content.call_count, 6)
 
     # Check that failed_tries is empty for all (infra errors don't count)
     for i in range(3):
       self.assertEqual(len(results_df.iloc[i]['failed_tries']), 0)
 
   @mock.patch('asyncio.sleep', new_callable=mock.AsyncMock)
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   async def test_token_limit_handled_as_job_error(
-      self, mock_call_gemini, mock_sleep
+      self, mock_generate_content, mock_sleep
   ):
     """Tests that an error containing 'limit' is handled as a job error (increments attempts)."""
 
     limit_error = Exception('Output length limit reached')
 
     # Setup: Fail first with limit error, then succeed
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         {'error': limit_error},
         {
             'text': 'Success',
@@ -755,12 +755,12 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
       self.assertNotEqual(call, mock.call(60))
 
     # Should have been two calls: failure and success
-    self.assertEqual(mock_call_gemini.call_count, 2)
+    self.assertEqual(mock_generate_content.call_count, 2)
 
   @mock.patch('asyncio.sleep', new_callable=mock.AsyncMock)
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   async def test_missing_status_code_does_not_crash(
-      self, mock_call_gemini, mock_sleep
+      self, mock_generate_content, mock_sleep
   ):
     """Tests that a ClientError with no status_code is handled safely without crashing."""
 
@@ -785,7 +785,7 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
     )
 
     # Setup: Fail first with quota error, then succeed
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         {'error': mock_error},
         {
             'text': 'Success',
@@ -811,12 +811,12 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
 
     # Check that generic pause was triggered with the correct delay
     self.assertIn(mock.call(0.1), mock_sleep.call_args_list)
-    self.assertEqual(mock_call_gemini.call_count, 2)
+    self.assertEqual(mock_generate_content.call_count, 2)
 
   @mock.patch('asyncio.sleep', new_callable=mock.AsyncMock)
-  @mock.patch('src.models.genai_model.GenaiModel.call_gemini')
+  @mock.patch('src.models.genai_model.GenaiModel.generate_content')
   async def test_concurrent_retries_client_error_no_response(
-      self, mock_call_gemini, mock_sleep
+      self, mock_generate_content, mock_sleep
   ):
     """Tests that a ClientError with no response object is handled safely without crashing."""
 
@@ -824,7 +824,7 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
     mock_error = MockClientError('Network or Parsing Failure')
 
     # Setup: Fail first with generic error, then succeed
-    mock_call_gemini.side_effect = [
+    mock_generate_content.side_effect = [
         {'error': mock_error},
         {
             'text': 'Success',
@@ -850,7 +850,7 @@ class GenaiModelBackoffTest(unittest.IsolatedAsyncioTestCase):
 
     # Check that generic pause was triggered with the correct delay
     self.assertIn(mock.call(0.1), mock_sleep.call_args_list)
-    self.assertEqual(mock_call_gemini.call_count, 2)
+    self.assertEqual(mock_generate_content.call_count, 2)
 
 if __name__ == '__main__':
   unittest.main()

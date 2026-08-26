@@ -30,7 +30,7 @@ class _FakeLlm:
     self._response = response
     self.call_args = None
 
-  async def call_gemini(self, prompt, run_name, temperature=0.0, **kwargs):
+  async def generate_content(self, prompt, run_name, temperature=0.0, **kwargs):
     del kwargs
     self.call_args = {
         "prompt": prompt,

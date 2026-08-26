@@ -114,7 +114,7 @@ class OpenAiCompatLlm:
     del run_name, temperature
     return max(1, len(prompt) // 4)
 
-  async def call_gemini(
+  async def generate_content(
       self,
       prompt: str,
       run_name: str,
@@ -125,7 +125,7 @@ class OpenAiCompatLlm:
       thinking_level: ThinkingLevel | None = None,
       max_concurrent_calls: int = MAX_CONCURRENT_CALLS,
   ) -> dict[str, Any] | None:
-    """Calls the chat completions API (named call_gemini for protocol parity)."""
+    """Calls the chat completions API with the given prompt."""
     del run_name, thinking_level, max_concurrent_calls
     if not prompt:
       raise ValueError("Prompt must be present.")
@@ -175,6 +175,10 @@ class OpenAiCompatLlm:
         continue
 
     return {"error": "Structured output failed: " + " | ".join(failures)}
+
+  async def call_gemini(self, *args, **kwargs):
+    """Deprecated alias for generate_content."""
+    return await self.generate_content(*args, **kwargs)
 
   async def _chat_completion(
       self,
@@ -292,7 +296,7 @@ class OpenAiCompatLlm:
         resp = None
         try:
           stats["api_calls_made"] += 1
-          resp = await self.call_gemini(
+          resp = await self.generate_content(
               prompt=job["prompt"],
               run_name=str(job.get("job_id", "")),
               system_prompt=job.get("system_prompt"),

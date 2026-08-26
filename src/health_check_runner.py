@@ -87,7 +87,7 @@ async def run_health_check(
   """Runs a generate probe against the configured LLM."""
   test_name = _test_name_for_adapter(adapter)
   try:
-    result = await llm.call_gemini(
+    result = await llm.generate_content(
         prompt=PROBE_PROMPT,
         run_name="health_check",
         temperature=0.0,

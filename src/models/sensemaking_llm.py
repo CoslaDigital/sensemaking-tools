@@ -36,7 +36,7 @@ class SensemakingLlm(Protocol):
   ) -> Tuple[pd.DataFrame, pd.DataFrame, float, float]:
     ...
 
-  async def call_gemini(
+  async def generate_content(
       self,
       prompt: str,
       run_name: str,
@@ -47,6 +47,7 @@ class SensemakingLlm(Protocol):
       thinking_level: ThinkingLevel | None = None,
       max_concurrent_calls: int = ...,
   ) -> dict[str, Any] | None:
+    """Vendor-neutral single-shot completion API."""
     ...
 
   def calculate_token_count_needed(

@@ -85,7 +85,7 @@ class EvalRunner:
           logging.info(f"{log_prefix} (Attempt {attempt + 1})...")
 
           # Call LLM
-          response = await self.model.call_gemini(
+          response = await self.model.generate_content(
               prompt=prompt,
               run_name=f"eval_job_{job_id}",
               response_mime_type="application/json",

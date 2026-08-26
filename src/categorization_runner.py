@@ -348,8 +348,8 @@ async def main() -> Optional[str]:
   parser.add_argument(
       "--model_name",
       type=str,
-      default="gemini-2.5-pro",
-      help="The name of the AI model to use. Default: gemini-2.5-pro.",
+      default="gemini-3.5-flash",
+      help="The name of the AI model to use. Default: gemini-3.5-flash.",
   )
   sensemaker_model_cli.add_sensemaker_model_options(parser)
   parser.add_argument(

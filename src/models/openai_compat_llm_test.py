@@ -62,7 +62,7 @@ class OpenAiCompatLlmTest(unittest.IsolatedAsyncioTestCase):
       kwargs = mock_client.call_args.kwargs
       self.assertIsNone(kwargs.get("default_headers"))
 
-  async def test_call_gemini_returns_text(self):
+  async def test_generate_content_returns_text(self):
     mock_response = SimpleNamespace(
         choices=[
             SimpleNamespace(message=SimpleNamespace(content='{"ok": true}'))
@@ -84,9 +84,26 @@ class OpenAiCompatLlmTest(unittest.IsolatedAsyncioTestCase):
           api_key="key",
           model_name="gpt-4o",
       )
-      result = await model.call_gemini(prompt="hello", run_name="test")
+      result = await model.generate_content(prompt="hello", run_name="test")
       self.assertEqual(result["text"], '{"ok": true}')
       self.assertIsNone(result["error"])
+
+  async def test_call_gemini_alias_delegates_to_generate_content(self):
+    with mock.patch("src.models.openai_compat_llm.AsyncOpenAI"):
+      model = OpenAiCompatLlm(
+          provider="openai",
+          base_url="https://api.openai.com/v1",
+          api_key="key",
+          model_name="gpt-4o",
+      )
+      expected = {"text": "aliased", "error": None}
+      with mock.patch.object(
+          model, "generate_content", new_callable=mock.AsyncMock
+      ) as mock_generate:
+        mock_generate.return_value = expected
+        result = await model.call_gemini(prompt="hi", run_name="alias")
+      mock_generate.assert_awaited_once_with(prompt="hi", run_name="alias")
+      self.assertEqual(result, expected)
 
   async def test_process_prompts_concurrently_ordering(self):
     with mock.patch("src.models.openai_compat_llm.AsyncOpenAI"):
@@ -98,7 +115,7 @@ class OpenAiCompatLlmTest(unittest.IsolatedAsyncioTestCase):
           max_concurrent_calls=2,
       )
 
-      async def fake_call_gemini(**kwargs):
+      async def fake_generate_content(**kwargs):
         del kwargs
         return {
             "text": "ok",
@@ -109,7 +126,7 @@ class OpenAiCompatLlmTest(unittest.IsolatedAsyncioTestCase):
         }
 
       with mock.patch.object(
-          model, "call_gemini", side_effect=fake_call_gemini
+          model, "generate_content", side_effect=fake_generate_content
       ):
         df, _, _, _ = await model.process_prompts_concurrently(
             [{"prompt": "a"}, {"prompt": "b"}],

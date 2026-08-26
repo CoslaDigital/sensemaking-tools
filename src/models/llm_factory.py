@@ -51,7 +51,7 @@ def create_sensemaking_llm(
           " GOOGLE_CLOUD_PROJECT."
       )
     return genai_model.GenaiModel(
-        model_name=opts.model_name or "gemini-2.5-pro",
+        model_name=opts.model_name or "gemini-3.5-flash",
         vertex_project=project,
         vertex_location=resolve_vertex_location(opts),
         max_llm_retries=max_llm_retries,
@@ -61,7 +61,7 @@ def create_sensemaking_llm(
   if opts.adapter == "gemini":
     api_key = resolve_api_key(opts)
     return genai_model.GenaiModel(
-        model_name=opts.model_name or "gemini-2.5-pro",
+        model_name=opts.model_name or "gemini-3.5-flash",
         gemini_api_key=api_key,
         max_llm_retries=max_llm_retries,
         stats_log_file=stats_log_file,

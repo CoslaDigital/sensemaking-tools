@@ -523,7 +523,7 @@ class GenaiModel:
 
           # Make the actual API call
           stats["api_calls_made"] += 1
-          resp = await self.call_gemini(
+          resp = await self.generate_content(
               prompt=prompt,
               run_name=opinion,
               system_prompt=system_prompt,
@@ -829,7 +829,7 @@ class GenaiModel:
         logging.info(f"Jobs with {num_retries} retries: {count}")
     logging.info("-----------------------")
 
-  async def call_gemini(
+  async def generate_content(
       self,
       prompt: str,
       run_name: str,
@@ -972,6 +972,10 @@ class GenaiModel:
           stack[:100],
       )
       return {"error": e}
+
+  async def call_gemini(self, *args, **kwargs):
+    """Deprecated alias for generate_content."""
+    return await self.generate_content(*args, **kwargs)
 
   def calculate_token_count_needed(
       self,
