@@ -35,7 +35,7 @@ class AutoraterEvalsTest(unittest.TestCase):
         )
     ]
     categorized_records = [
-        custom_types.StatementRecord(
+        custom_types.QuoteOpinionRecord(
             id="s1",
             quote_id="q1",
             topics=[custom_types.FlatTopic(name="Opinion 1")],

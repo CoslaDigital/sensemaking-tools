@@ -40,6 +40,8 @@ from src.models.custom_types import (
     FlatTopic,
     NestedTopic,
     StatementRecordList,
+    QuoteOpinionRecord,
+    QuoteOpinionRecordList,
     OpinionResponseSchema,
 )
 from src.evals.autorater_evals import (
@@ -603,8 +605,10 @@ def _prepare_opinion_prompts_for_pending_work(
     opinion_categorization_prompts = _prepare_categorization_prompts(
         pending_statements,
         opinions,
-        prompts.get_categorization_opinion_prompt(json.dumps([{"name": op.name} for op in opinions])),
-        StatementRecordList,
+        prompts.get_categorization_opinion_prompt(
+            json.dumps([{"name": op.name} for op in opinions])
+        ),
+        QuoteOpinionRecordList,
         additional_context,
         parent_topic_name=topic.name,
         is_opinion_categorization=True,
@@ -795,7 +799,7 @@ async def _run_opinion_autoraters(
         )
         # Permanently failed -> Other
         other_topic = FlatTopic(name="Other")
-        other_record = StatementRecord(
+        other_record = QuoteOpinionRecord(
             id=stat.id, quote_id=original_record.quote_id, topics=[other_topic]
         )
         _merge_opinions_into_statements_inplace(
@@ -851,7 +855,7 @@ def _assign_defaults_for_exhausted_retries(
         relevant_quotes = [q for q in stat.quotes if q.topic.name == topic_name]
         for q in relevant_quotes:
           other_records.append(
-              StatementRecord(id=stat.id, quote_id=q.id, topics=[other_topic])
+              QuoteOpinionRecord(id=stat.id, quote_id=q.id, topics=[other_topic])
           )
     if other_records:
       _merge_opinions_into_statements_inplace(
@@ -1165,11 +1169,14 @@ async def _process_topic_categorization(
 
 
 def _process_categorized_llm_records(
-    llm_output_records: list[StatementRecord],
+    llm_output_records: list[Union[StatementRecord, QuoteOpinionRecord]],
     all_original_input_statements: list[Statement],
     statements_in_current_batch: list[Statement],
     target_topics_or_opinions: list[Topic],
-) -> dict[str, Union[list[StatementRecord], list[Statement]]]:
+) -> dict[
+    str,
+    Union[list[Union[StatementRecord, QuoteOpinionRecord]], list[Statement]],
+]:
   """Validates and processes the raw records from the language model.
 
   This function separates valid records from invalid ones, identifies which
@@ -1213,10 +1220,13 @@ def _process_categorized_llm_records(
 
 
 def _validate_llm_records(
-    llm_records: list[StatementRecord],
+    llm_records: list[Union[StatementRecord, QuoteOpinionRecord]],
     all_original_input_statements: list[Statement],
     target_topics_or_opinions: list[Topic],
-) -> tuple[list[StatementRecord], list[StatementRecord]]:
+) -> tuple[
+    list[Union[StatementRecord, QuoteOpinionRecord]],
+    list[Union[StatementRecord, QuoteOpinionRecord]],
+]:
   """Validates LLM records against a set of rules.
 
   Checks for:
@@ -1228,8 +1238,8 @@ def _validate_llm_records(
       A tuple of two lists: records that passed validation and those that
       failed.
   """
-  passed_validation: list[StatementRecord] = []
-  failed_validation: list[StatementRecord] = []
+  passed_validation: list[Union[StatementRecord, QuoteOpinionRecord]] = []
+  failed_validation: list[Union[StatementRecord, QuoteOpinionRecord]] = []
   original_statement_ids = {s.id for s in all_original_input_statements}
   # Create a set of valid topic names for quick lookup.
   valid_topic_names = {t.name for t in target_topics_or_opinions}
@@ -1257,7 +1267,9 @@ def _is_extra_statement_record(
   return False
 
 
-def _has_empty_topics_in_record(record: StatementRecord) -> bool:
+def _has_empty_topics_in_record(
+    record: Union[StatementRecord, QuoteOpinionRecord],
+) -> bool:
   """Checks if an LLM record has an empty list of topics."""
   if not record.topics:
     logging.debug(
@@ -1269,7 +1281,8 @@ def _has_empty_topics_in_record(record: StatementRecord) -> bool:
 
 
 def _has_invalid_topic_names_in_record(
-    record: StatementRecord, valid_topic_names: set[str]
+    record: Union[StatementRecord, QuoteOpinionRecord],
+    valid_topic_names: set[str],
 ) -> bool:
   """Checks if an LLM record contains topic names not in the valid set.
 
@@ -1328,7 +1341,7 @@ def _has_invalid_topic_names_in_record(
 
 
 def _find_missing_from_llm_response(
-    llm_records: list[StatementRecord],
+    llm_records: list[Union[StatementRecord, QuoteOpinionRecord]],
     statements_sent_to_llm_batch: list[Statement],
 ) -> list[Statement]:
   """Finds statements that were sent to the model but were not in the response."""
@@ -1354,7 +1367,7 @@ def _find_missing_from_llm_response(
 
 def _merge_opinions_into_statements_inplace(
     input_statements_map: dict[str, Statement],
-    categorized_llm_records: list[StatementRecord],
+    categorized_llm_records: list[Union[StatementRecord, QuoteOpinionRecord]],
     parent_topic: Topic,
 ) -> None:
   """Merges categorized opinions back into the main list of statements (in-place).

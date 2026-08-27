@@ -47,7 +47,7 @@ class CategorizationTest(unittest.TestCase):
     mock_model.max_llm_retries = 10
 
     # Mock process_prompts_concurrently
-    fake_record = custom_types.StatementRecord(
+    fake_record = custom_types.QuoteOpinionRecord(
         id="statement1",
         quote_id="statement1-Topic A",
         topics=[custom_types.FlatTopic(name="Opinion 1")],
@@ -135,7 +135,7 @@ class CategorizationTest(unittest.TestCase):
     mock_model.max_llm_retries = 10
 
     # Mock process_prompts_concurrently with mismatched quote_id
-    fake_record = custom_types.StatementRecord(
+    fake_record = custom_types.QuoteOpinionRecord(
         id="statement1",
         quote_id="mismatched-id",
         topics=[custom_types.FlatTopic(name="Opinion 1")],
@@ -311,7 +311,7 @@ class CategorizationTest(unittest.TestCase):
     # Mock process_prompts
     # It will be called multiple times: 1st attempt, 2nd, 3rd.
     # We simulate ALWAYS returning a valid record from LLM, but Autorater REJECTS it.
-    fake_record = custom_types.StatementRecord(
+    fake_record = custom_types.QuoteOpinionRecord(
         id="statement1",
         quote_id="q1",
         topics=[custom_types.FlatTopic(name="Op1")],
@@ -412,7 +412,7 @@ class CategorizationTest(unittest.TestCase):
     mock_model = MagicMock()
     mock_model.max_llm_retries = 10
 
-    fake_record = custom_types.StatementRecord(
+    fake_record = custom_types.QuoteOpinionRecord(
         id="statement1",
         quote_id="q1",
         topics=[custom_types.FlatTopic(name="Op1")],

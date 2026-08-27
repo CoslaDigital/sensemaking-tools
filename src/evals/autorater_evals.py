@@ -16,7 +16,7 @@
 
 import json
 import logging
-from typing import Any
+from typing import Any, Union
 
 from src import prompts
 from src.evals.eval_metrics import OPINION_CATEGORIZATION_METRICS
@@ -47,7 +47,9 @@ def parse_eval_response(
 
 
 def prepare_opinion_eval_prompts(
-    categorized_records: list[custom_types.StatementRecord],
+    categorized_records: list[
+        Union[custom_types.StatementRecord, custom_types.QuoteOpinionRecord]
+    ],
     input_statements: list[custom_types.Statement],
     all_opinions_for_topic: list[custom_types.Topic],
     parent_topic_name: str,
@@ -112,7 +114,10 @@ def prepare_opinion_eval_prompts(
 
 def process_opinion_eval_results(
     results_list: list[dict[str, Any]],
-) -> dict[str, list[custom_types.StatementRecord]]:
+) -> dict[
+    str,
+    list[Union[custom_types.StatementRecord, custom_types.QuoteOpinionRecord]],
+]:
   """Processes the evaluation results."""
   passed_records = []
   failed_records = []
