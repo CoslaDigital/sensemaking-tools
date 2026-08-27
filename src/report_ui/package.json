@@ -1,11 +1,11 @@
 {
-  "name": "jigsaw-sensemaking-generator",
+  "name": "@cosla/sensemaking-report-builder",
   "version": "0.1.0",
-  "description": "Interactive HTML report builder for Python sensemaking pipeline outputs.",
+  "description": "Interactive HTML report builder for Cosla Python sensemaking pipeline outputs (bridging scores CSV + report_data.json).",
   "type": "module",
   "main": "build.js",
   "bin": {
-    "sensemaking-py-report-ui": "bin/cli.js"
+    "sensemaking-report-builder": "bin/cli.js"
   },
   "files": [
     "bin/",
@@ -23,14 +23,25 @@
     "preview": "node build.js preview",
     "github": "node build.js github"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CoslaDigital/sensemaking-tools.git",
+    "directory": "src/report_ui"
+  },
   "keywords": [
-    "sensemaking"
+    "sensemaking",
+    "report",
+    "cosla"
   ],
-  "author": "",
+  "author": "CoslaDigital",
   "publishConfig": {
     "access": "public"
   },
   "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/CoslaDigital/sensemaking-tools/issues"
+  },
+  "homepage": "https://github.com/CoslaDigital/sensemaking-tools/tree/python-based/src/report_ui#readme",
   "dependencies": {
     "csvtojson": "^2.0.10",
     "inline-source": "^8.0.3",

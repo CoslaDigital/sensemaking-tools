@@ -113,6 +113,32 @@ Automated publish via Trusted Publishing and `.github/workflows/publish-pypi.yml
 ## What is excluded from the PyPI wheel
 
 - `case_studies/` (archived case study snapshots)
-- `src/report_ui/` (published separately as an npm package in future Cosla work)
+- `src/report_ui/` (published separately on npm as **[@cosla/sensemaking-report-builder](https://www.npmjs.com/package/@cosla/sensemaking-report-builder)**)
 
 Shell helpers `src/survey_processing.sh` and `src/moderation.sh` are not installed as console scripts in v0.1.0; run them from a git clone if needed.
+
+## npm: interactive report builder
+
+The Python-pipeline HTML report UI lives in [`src/report_ui/`](src/report_ui/) and is published as **[@cosla/sensemaking-report-builder](https://www.npmjs.com/package/@cosla/sensemaking-report-builder)** (CLI: `sensemaking-report-builder`). It is distinct from [`@cosla/sensemaking-report-ui`](https://www.npmjs.com/package/@cosla/sensemaking-report-ui) (Node advanced JSON inputs).
+
+```bash
+npm install @cosla/sensemaking-report-builder
+
+npx @cosla/sensemaking-report-builder inline \
+  --bridging_scores /path/to/bridging_scores.csv \
+  --summary /path/to/report_data.json \
+  --output /path/to/report.html
+```
+
+See [`src/report_ui/README.md`](src/report_ui/README.md) for flags (`static` / `--outputDir`, `--config`, `--predicted`, etc.).
+
+### Release to npm (manual)
+
+From `src/report_ui/`:
+
+1. Ensure npm access to the **`@cosla`** scope (CoslaDigital).
+2. Confirm `package.json` `version` / `name`.
+3. `npm pack --dry-run` then `npm publish --access public`.
+4. Smoke: `npx @cosla/sensemaking-report-builder@<version> inline --bridging_scores … --summary … --output /tmp/report.html`.
+
+Automated npm publish via GitHub Actions is deferred (same stance as PyPI Trusted Publishing above).

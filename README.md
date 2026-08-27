@@ -282,33 +282,49 @@ The script follows a recursive summarization process to ensure accuracy:
 
 #### 5\. Interactive Report
 
-In order to build the web interface to explore the summarized data, begin by **copying the processed data** into the UI input folder.
+Build an interactive HTML report from bridging scores and report text using **`@cosla/sensemaking-report-builder`** (Cosla CLI package for the Python-pipeline report UI under `src/report_ui/`).
 
 ```shell
-cp <OUTPUT_DIR>/bridging_scores.csv src/report_ui/input/opinions.csv
-cp <OUTPUT_DIR>/report_text/report_data.json src/report_ui/input/summary.json
+npx @cosla/sensemaking-report-builder inline \
+  --bridging_scores <OUTPUT_DIR>/bridging_scores.csv \
+  --summary <OUTPUT_DIR>/report_text/report_data.json \
+  --output <OUTPUT_DIR>/report.html
+```
+
+From a git checkout of this repo you can also run the CLI locally:
+
+```shell
+cd src/report_ui && npm install
+node bin/cli.js inline \
+  --bridging_scores <path>/bridging_scores.csv \
+  --summary <path>/report_data.json \
+  --output <path>/report.html
+```
+
+Or use a prepared `input/` directory (`opinions.csv`, `summary.json`, optional `config.json` / logo):
+
+```shell
+node bin/cli.js inline --inputDir ./input --output ./output/report.html
 ```
 
 ##### **Customize the Report (Optional)**:
 
-You can edit `src/report_ui/input/config.json` to customize the report. Key options include:
+Pass `--config` or place `config.json` under `--inputDir`. Key options include:
 
 * `title`: Set the display title of the report.
-* `logo`: Set the filename of your header image (placed in the `input/` folder).
+* `logo`: Set the filename of your header image (placed in the input folder).
 * `overview_chart`: Set the display mode for the main chart (`"toggle"`, `"topics"`, or `"opinions"`).
 * `number_of_sample_quotes`: Control how many quote previews to display for each opinion.
 * `chart_colors`: Provide an array of hex color codes to customize the chart palette.
 * `demographic_colors`: Provide an array of hex color codes to customize the participant chart palette.
 * `excludedTopics`: Add topic names to this array to hide them from the report.
 * `excludedOpinions`: Add opinion names to this array to hide them from the report.
-* *For a full list of configuration options, check the `README.md` file in `src/report_ui/`.*
+* *For a full list of configuration options, see [`src/report_ui/README.md`](src/report_ui/README.md).*
 
 ##### **Add Advanced Features (Optional)**:
 
-You can enhance your report by configuring two additional features before building:
-
-1. **Demographic Support:** Add demographic dimensions by prefixing columns in `opinions.csv` with `demo:` (e.g. `demo:Age` or `demo:Location`). The tool builds a demographic breakdown chart and quote filters from these columns.
-2. **Predicted Agreement (Propositions):** After generating propositions, feature them in a dedicated "Predicted Agreement" tab. Create `src/report_ui/input/predicted.json` structured like this:
+1. **Demographic Support:** Add demographic dimensions by prefixing columns in the opinions CSV with `demo:` (e.g. `demo:Age` or `demo:Location`).
+2. **Predicted Agreement (Propositions):** Pass `--predicted` or place `predicted.json` under `--inputDir`, structured like this:
 ```json
 {
   "text": "Introductory text for the predicted agreement tab.",
@@ -327,16 +343,10 @@ You can enhance your report by configuring two additional features before buildi
 }
 ```
 
-##### **View and Build the Report**:
+##### **Build modes**:
 
-```shell
-cd src/report_ui
-npm install
-```
-
-1. **Web Server Deployment (Static)**: Run `npm run build` to output a version optimized for delivery via a web server to `src/report_ui/output/static`.
-2. **Offline Viewing (Inline)**: Run `npm run inline` to output a self-contained version of the report to `src/report_ui/output/inline`.
-   * *Note: This may not be suitable for larger conversations.*
+1. **Offline / single file (`inline`)**: requires `--output <file.html>` (self-contained HTML).
+2. **Web server (`static`)**: requires `--outputDir <dir>` (writes `report.html` plus CSS/JS assets).
 
 *(Optional) Local Development:* Run `npm run dev` for a live local server during development.
 
