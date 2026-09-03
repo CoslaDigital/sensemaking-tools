@@ -1,7 +1,7 @@
 {
   "name": "@cosla/sensemaking-report-builder",
   "version": "0.1.0",
-  "description": "Interactive HTML report builder for Cosla Python sensemaking pipeline outputs (bridging scores CSV + report_data.json).",
+  "description": "Interactive HTML report builder for Cosla Python sensemaking pipeline outputs.",
   "type": "module",
   "main": "build.js",
   "bin": {
