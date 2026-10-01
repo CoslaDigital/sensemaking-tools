@@ -4,6 +4,17 @@
 
 This repository shares tools developed by [Jigsaw](http://jigsaw.google) as a proof of concept to help make sense of large-scale online conversations. It demonstrates how Large Language Models (LLMs) like Gemini can be leveraged for such tasks. The code provided here offers a transparent look into Jigsaw's methods for categorization, summarization, and identifying points of agreement and disagreement in free response public opinion research. Our goal in sharing this is to inspire others by providing a potential starting point and useful elements for those tackling similar challenges.
 
+## Differences from upstream Jigsaw
+
+This Cosla fork tracks [Jigsaw sensemaking-tools](https://github.com/Jigsaw-Code/sensemaking-tools) but is not a drop-in mirror. Main differences:
+
+* **Distribution:** Published on PyPI as `cosla-sensemaking-tools` with console entry points (`sensemaking-categorize`, `sensemaking-health-check`, `sensemaking-world-model`, etc.). Upstream is primarily source plus `requirements.txt`. Ranked proposition export after jury refinement is available as `sensemaking-world-model` (upstream: `python3 -m src.world_model.main`).
+* **LLM backends:** First-class `--adapter` for Gemini (AI Studio), Vertex AI (ADC), and OpenAI-compatible APIs, with `--provider` presets for OpenAI, OpenRouter, and Mistral. Upstream’s open-model path is a simpler env-var (`MODEL_ENDPOINT_TYPE`) factory aimed at local OpenAI-compatible servers.
+* **Health check:** `sensemaking-health-check` verifies adapter and credentials before full pipeline runs.
+* **Safer CSV input:** Categorization treats the literal token `"None"` in `survey_text` as text, not a missing value (`keep_default_na=False`).
+* **Report UI:** Packaged as `@cosla/sensemaking-report-builder` (CLI with explicit input/output paths). Upstream report UI remains the in-repo `jigsaw-sensemaking-generator` workflow; feature work (demographics, predicted agreement, i18n) has been ported where relevant. The report UI is not included in the PyPI wheel.
+* **Scope:** Active work stays under `src/`. Case studies live upstream in a [separate repository](https://github.com/Jigsaw-Code/sensemaking-case-studies/); this fork does not maintain them.
+
 ## Overview
 
 Effectively understanding large-scale public input is a significant challenge. Traditional methods require choosing between the breadth of polls or the depth of focus groups. This initiative showcases how Google's Gemini models can allow those seeking to understand public opinion to get the best of both approaches, transforming massive volumes of raw community feedback into clear, digestible insights.
