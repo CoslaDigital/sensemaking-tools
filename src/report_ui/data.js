@@ -380,6 +380,8 @@ export function processReportData({
   }
 
   const overviewChart = config.overview_chart || "toggle";
+  const excludedTopics = new Set(config.excluded_topics || []);
+  const excludedOpinions = new Set(config.excluded_opinions || []);
   const reportOptions = {
     logo: config.logo || "",
     overviewChart,
@@ -441,34 +443,43 @@ export function processReportData({
    * @returns {Object[]}
    */
   function groupOpinions(opinionsList) {
-    const byTopic = groupBy(opinionsList, "topic");
-    return byTopic.map(([topicText, topicOpinions]) => {
-      const topicMatch = (summary.sub_contents || []).find(
-        (t) => stripMarkdownHeader(t.title) === topicText,
-      );
-      const topicId = generateId(topicText, true);
-      const byOpinion = groupBy(topicOpinions, "opinion").map(([_, values]) => ({
-        opinionID: generateId(values[0].opinion),
-        fullID: `${topicId}-${generateId(values[0].opinion)}`,
-        text: values[0].opinion,
-        count: values.length,
-        quotes: sortAndExtractQuotes(values),
-      }));
+    const byTopic = groupBy(opinionsList, "topic").filter(
+      ([topicText]) => !excludedTopics.has(topicText),
+    );
+    return byTopic
+      .map(([topicText, topicOpinions]) => {
+        const topicMatch = (summary.sub_contents || []).find(
+          (t) => stripMarkdownHeader(t.title) === topicText,
+        );
+        const topicId = generateId(topicText, true);
+        const keptOpinions = topicOpinions.filter(
+          (row) => !excludedOpinions.has(row.opinion),
+        );
+        const byOpinion = groupBy(keptOpinions, "opinion").map(
+          ([_, values]) => ({
+            opinionID: generateId(values[0].opinion),
+            fullID: `${topicId}-${generateId(values[0].opinion)}`,
+            text: values[0].opinion,
+            count: values.length,
+            quotes: sortAndExtractQuotes(values),
+          }),
+        );
 
-      byOpinion.sort((a, b) => {
-        if (a.text === "Other") return 1;
-        if (b.text === "Other") return -1;
-        return b.count - a.count;
-      });
+        byOpinion.sort((a, b) => {
+          if (a.text === "Other") return 1;
+          if (b.text === "Other") return -1;
+          return b.count - a.count;
+        });
 
-      return {
-        topicID: topicId,
-        summary: cleanMarkdown(topicMatch?.text),
-        text: topicText,
-        count: topicOpinions.length,
-        opinions: byOpinion,
-      };
-    });
+        return {
+          topicID: topicId,
+          summary: cleanMarkdown(topicMatch?.text),
+          text: topicText,
+          count: keptOpinions.length,
+          opinions: byOpinion,
+        };
+      })
+      .filter((topic) => topic.opinions.length > 0);
   }
 
   /**
@@ -587,7 +598,7 @@ export function processReportData({
   const quotes = flattenQuotes(opinionsGrouped);
   const predicted = processPredicted(predictedRaw);
 
-  const topicsIdentified = (summary.sub_contents || []).length;
+  const topicsIdentified = opinionsGrouped.length;
   const topicsIdentifiedFormatted = formatNumber(topicsIdentified);
   const opinionsIdentified = opinionsGrouped
     .map((t) => t.opinions.length)

@@ -90,7 +90,7 @@ Same shape as Python `sensemaking-report-text` / `report_data.json`: `text`, `su
 | `low_sample_warning_threshold` | Low-sample warning threshold |
 | `topic_colors` / `chart_colors` | Overview chart colours |
 | `demographic_colors` | Participant chart colours |
-| `excludedTopics` / `excludedOpinions` | Hide named topics/opinions |
+| `excluded_topics` / `excluded_opinions` | Hide named topics/opinions (exact match to CSV columns) |
 
 ### Predicted agreement (optional)
 
