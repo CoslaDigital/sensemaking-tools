@@ -1,6 +1,6 @@
 {
   "name": "@cosla/sensemaking-tools",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Tools for analyzing large-scale public input using Google's Gemini models. Provides topic identification, statement categorization, and summarization capabilities. Fork of Jigsaw's sensemaking-tools (https://github.com/Jigsaw-Code/sensemaking-tools).",
   "homepage": "https://github.com/CoslaDigital/sensemaking-tools#readme",
   "main": "src/sensemaker.ts",
@@ -63,7 +63,7 @@
     "@google/genai": "^1.52.0",
     "@sinclair/typebox": "^0.34.3",
     "commander": "^13.1.0",
-    "csv-parse": "^5.6.0",
+    "csv-parse": "^7.0.3",
     "csv-writer": "^1.6.0",
     "marked": "^15.0.3",
     "p-limit": "^3.1.0",
