@@ -9,7 +9,12 @@
   </head>
   <body>
     <header class="header">
-      <h1 id="top">{{reportTitle}}</h1>
+      <div class="header-brand">
+        {{#logo}}
+        <img class="header-logo" src="{{logo}}" alt="" inline />
+        {{/logo}}
+        <h1 id="top">{{reportTitle}}</h1>
+      </div>
       <button type="button" data-share="" class="button subtle">Share report</button>
     </header>
     <main class="report-main">

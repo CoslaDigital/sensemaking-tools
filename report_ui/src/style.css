@@ -25,6 +25,25 @@ body {
   z-index: 3;
 }
 
+.header-brand {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.header-logo {
+  display: block;
+  height: 36px;
+  max-width: 180px;
+  object-fit: contain;
+  width: auto;
+}
+
+.header-brand h1 {
+  margin: 0;
+}
+
 .report-main {
   display: flex;
   column-gap: 26px;

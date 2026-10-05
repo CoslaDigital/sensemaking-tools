@@ -13,6 +13,13 @@ function assertIncludes(filePath, expectedText) {
   }
 }
 
+function assertNotIncludes(filePath, unexpectedText) {
+  const content = fs.readFileSync(filePath, "utf-8");
+  if (content.includes(unexpectedText)) {
+    throw new Error(`Expected output to omit "${unexpectedText}" in ${filePath}`);
+  }
+}
+
 async function runCase(caseName, expectFailure = false) {
   const inputDir = path.join(root, caseName);
   const outputDir = path.join(outputRoot, caseName);
@@ -52,6 +59,19 @@ async function runCase(caseName, expectFailure = false) {
     throw new Error(`Missing output file for fixture "${caseName}".`);
   }
   assertIncludes(result.outputFile, "About this report");
+
+  if (caseName === "with-config") {
+    assertIncludes(result.outputFile, "Configured Report Title");
+    assertNotIncludes(result.outputFile, "Transport");
+    assertIncludes(result.outputFile, "header-logo");
+    assertIncludes(result.outputFile, 'id="top">Configured Report Title');
+    // Multi-topic statement keeps Housing after Transport is excluded.
+    assertIncludes(
+      result.outputFile,
+      "Link housing density to better bus corridors.",
+    );
+    assertIncludes(result.outputFile, "Housing > Affordable housing");
+  }
 }
 
 async function main() {
@@ -61,6 +81,7 @@ async function main() {
   await runCase("happy-path");
   await runCase("empty-dataset");
   await runCase("missing-field", true);
+  await runCase("with-config");
 
   console.log("Smoke tests passed.");
 }

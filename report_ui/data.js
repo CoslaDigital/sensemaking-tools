@@ -134,10 +134,79 @@ function getSummaryLookups(summaryData) {
   return { topicEntries, topicMap };
 }
 
+function topicNameFromSummaryTitle(title) {
+  return String(title || "")
+    .replace(/^#+\s*/, "")
+    .trim();
+}
+
+function filterSummaryTopics(summaryData, excludedTopics) {
+  if (excludedTopics.size === 0) {
+    return summaryData;
+  }
+  const summary = JSON.parse(JSON.stringify(summaryData));
+  const topicsSection = summary?.contents?.find((content) =>
+    String(content.title || "").includes("Topics"),
+  );
+  if (topicsSection && Array.isArray(topicsSection.subContents)) {
+    topicsSection.subContents = topicsSection.subContents.filter(
+      (entry) => !excludedTopics.has(topicNameFromSummaryTitle(entry.title)),
+    );
+  }
+  return summary;
+}
+
+function filterComments(comments, excludedTopics) {
+  if (excludedTopics.size === 0) {
+    return comments;
+  }
+  return comments
+    .map((comment) => {
+      const tokens = String(comment.topics || "")
+        .split(";")
+        .map((token) => token.trim())
+        .filter(Boolean)
+        .filter((token) => {
+          const topicName = token.split(":")[0];
+          return !excludedTopics.has(topicName);
+        });
+      if (tokens.length === 0) {
+        return null;
+      }
+      return { ...comment, topics: tokens.join(";") };
+    })
+    .filter(Boolean);
+}
+
+function resolveLogoPath(logo, configPath, inputDir) {
+  if (!logo) {
+    return null;
+  }
+  const searchDirs = [];
+  if (configPath) {
+    searchDirs.push(path.dirname(configPath));
+  }
+  if (inputDir && !searchDirs.includes(inputDir)) {
+    searchDirs.push(inputDir);
+  }
+  for (const dir of searchDirs) {
+    const candidate = path.join(dir, logo);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(
+    `Logo file not found: ${logo} (searched next to config and under inputDir)`,
+  );
+}
+
 export function buildPayload(options) {
-  const topicData = readJson(options.topicsPath, "topics");
-  const summaryData = readJson(options.summaryPath, "summary");
-  const comments = readJson(options.commentsPath, "comments");
+  const config = options.configPath ? readJson(options.configPath, "config") : {};
+  const excludedTopics = new Set(config.excluded_topics || []);
+
+  let topicData = readJson(options.topicsPath, "topics");
+  let summaryData = readJson(options.summaryPath, "summary");
+  let comments = readJson(options.commentsPath, "comments");
   const metadata = readJson(options.metadataPath, "metadata");
 
   assertArray(topicData, "topic-stats");
@@ -145,6 +214,12 @@ export function buildPayload(options) {
   if (!metadata || typeof metadata !== "object") {
     throw new Error("metadata must be an object.");
   }
+
+  topicData = topicData.filter(
+    (topic) => topic && typeof topic.name === "string" && !excludedTopics.has(topic.name),
+  );
+  summaryData = filterSummaryTopics(summaryData, excludedTopics);
+  comments = filterComments(comments, excludedTopics);
 
   const { totalVotes, subtopicIds } = ensureTopicLinks(topicData, comments);
   const { topicEntries } = getSummaryLookups(summaryData);
@@ -171,8 +246,16 @@ export function buildPayload(options) {
     return { ...topic, subtopicStats };
   });
 
+  const logo = typeof config.logo === "string" ? config.logo : "";
+  const logoPath = logo
+    ? resolveLogoPath(logo, options.configPath, options.inputDir)
+    : null;
+
   return {
-    reportTitle: options.reportTitle || metadata.title || "Report",
+    reportTitle:
+      options.reportTitle || config.title || metadata.title || "Report",
+    logo: logoPath ? path.basename(logoPath) : "",
+    logoPath,
     summary: summaryData,
     topics: topicsWithContent,
     comments,
@@ -205,12 +288,27 @@ export function resolveBuildOptions(argv, cwd) {
   const inputDir = path.resolve(cwd, flags.get("inputDir") || "input");
   const outputDir = path.resolve(cwd, flags.get("outputDir") || "output");
 
+  const configExplicit = flags.has("config");
+  let configPath = null;
+  if (configExplicit) {
+    configPath = path.resolve(cwd, flags.get("config"));
+    if (!fs.existsSync(configPath)) {
+      throw new Error(`Config JSON not found: ${configPath}`);
+    }
+  } else {
+    const defaultConfig = path.join(inputDir, "config.json");
+    if (fs.existsSync(defaultConfig)) {
+      configPath = defaultConfig;
+    }
+  }
+
   return {
     command,
     inputDir,
     outputDir,
     outputFile: path.resolve(outputDir, flags.get("outputFile") || "report.html"),
     reportTitle: flags.get("reportTitle"),
+    configPath,
     topicsPath: path.resolve(cwd, flags.get("topics") || path.join(inputDir, "topic-stats.json")),
     summaryPath: path.resolve(cwd, flags.get("summary") || path.join(inputDir, "summary.json")),
     commentsPath: path.resolve(cwd, flags.get("comments") || path.join(inputDir, "comments.json")),

@@ -1,0 +1,53 @@
+{
+  "title": "# Housing conversation",
+  "text": "This conversation focused on affordability, zoning, and transport.",
+  "contents": [
+    {
+      "title": "## Topics",
+      "subContents": [
+        {
+          "title": "### Housing",
+          "text": "Participants discussed both affordability and neighborhood impact.",
+          "subContents": [
+            {
+              "title": "#### Affordable housing",
+              "text": "People want more supply but also quality standards.",
+              "subContents": [
+                {
+                  "title": "##### themes",
+                  "text": "- Build near transit\n- Keep projects mixed-income"
+                }
+              ]
+            },
+            {
+              "title": "#### Zoning",
+              "text": "The group debated trade-offs and implementation pace.",
+              "subContents": [
+                {
+                  "title": "##### themes",
+                  "text": "- Preserve local character\n- Pilot changes before scaling"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "### Transport",
+          "text": "Participants discussed bus frequency and coverage.",
+          "subContents": [
+            {
+              "title": "#### Buses",
+              "text": "Service levels were a frequent concern.",
+              "subContents": [
+                {
+                  "title": "##### themes",
+                  "text": "- Increase evening frequency\n- Extend weekend routes"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

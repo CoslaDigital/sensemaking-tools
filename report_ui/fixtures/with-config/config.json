@@ -1,0 +1,5 @@
+{
+  "title": "Configured Report Title",
+  "logo": "logo.svg",
+  "excluded_topics": ["Transport"]
+}

@@ -27,10 +27,29 @@ npm run build -- inline --inputDir ./fixtures/happy-path --outputDir ./output
 - `--summary`: path to `summary.json` (default: `<inputDir>/summary.json`)
 - `--comments`: path to `comments.json` (default: `<inputDir>/comments.json`)
 - `--metadata`: path to `metadata.json` (default: `<inputDir>/metadata.json`)
-- `--reportTitle`: optional title override (falls back to metadata title)
+- `--config`: optional path to `config.json` (default: `<inputDir>/config.json` if present)
+- `--reportTitle`: optional title override (falls back to `config.title`, then metadata title)
 - `--inputDir`: base input directory (default: `./input`)
 - `--outputDir`: output directory (default: `./output`)
 - `--outputFile`: filename or path for final html (default: `report.html`)
+
+## Config JSON (optional)
+
+| Key | Description |
+| :--- | :--- |
+| `title` | Report title override (overridden by `--reportTitle` when set) |
+| `logo` | Header image filename resolved next to the config file (or under `--inputDir`) |
+| `excluded_topics` | Topic names to omit (exact match). Removes topic cards, related statements, summary/chart entries, and recomputes About metrics |
+
+Example:
+
+```json
+{
+  "title": "My Report",
+  "logo": "logo.svg",
+  "excluded_topics": ["Other"]
+}
+```
 
 ## Fixtures and smoke tests
 
@@ -39,6 +58,7 @@ Fixtures are in `fixtures/`:
 - `happy-path`
 - `empty-dataset`
 - `missing-field`
+- `with-config` (title, logo, and `excluded_topics`)
 
 Run smoke checks:
 
@@ -48,8 +68,9 @@ npm run smoke
 
 This validates:
 
-- successful builds for `happy-path` and `empty-dataset` (output under `smoke-output/<fixture>/report.html`),
+- successful builds for `happy-path`, `empty-dataset`, and `with-config` (output under `smoke-output/<fixture>/report.html`),
 - output HTML includes the `About this report` section marker,
+- `with-config` applies title override, inlines the logo, and omits excluded topics,
 - `missing-field` fails with a clear validation error (`topics string`).
 
 ## Parity checklist against Angular standalone report

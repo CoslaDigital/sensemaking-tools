@@ -136,10 +136,17 @@ export async function runBuild(argv = process.argv, cwd = process.cwd()) {
   rm(tempDir);
   mkdir(tempDir);
 
-  const payload = formatPayload(buildPayload(options));
+  const rawPayload = buildPayload(options);
+  const { logoPath, logo, ...payloadFields } = rawPayload;
+  const payload = formatPayload(payloadFields);
+  if (logoPath) {
+    fs.copyFileSync(logoPath, path.join(tempDir, logo));
+  }
+
   const template = fs.readFileSync(path.join(srcDir, "index.mustache"), "utf-8");
   const html = mustache.render(template, {
     reportTitle: payload.reportTitle,
+    logo: logo || "",
     payloadJson: toJson(payload),
   });
 
