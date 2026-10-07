@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import mustache from "mustache";
 import { inlineSource } from "inline-source";
-import { buildPayload, resolveBuildOptions } from "./data.js";
+import { buildPayload, loadConfigSchema, resolveBuildOptions } from "./data.js";
 
 const require = createRequire(import.meta.url);
 
@@ -125,11 +125,20 @@ async function inlineHtml(rawHtmlPath, rootPath) {
 
 export async function runBuild(argv = process.argv, cwd = process.cwd()) {
   const options = resolveBuildOptions(argv, cwd);
-  if (options.command !== "inline" && options.command !== "build") {
-    throw new Error(`Unsupported command "${options.command}". Use "inline" or "build".`);
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+
+  if (options.command === "config-schema") {
+    const schema = loadConfigSchema(options.schemaVersion, moduleDir);
+    process.stdout.write(`${JSON.stringify(schema, null, 2)}\n`);
+    return { command: "config-schema" };
   }
 
-  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  if (options.command !== "inline" && options.command !== "build") {
+    throw new Error(
+      `Unsupported command "${options.command}". Use "inline", "build", or "config-schema".`,
+    );
+  }
+
   const srcDir = path.join(moduleDir, "src");
   const tempDir = path.join(options.outputDir, ".tmp");
   mkdir(options.outputDir);
@@ -174,6 +183,7 @@ export async function runBuild(argv = process.argv, cwd = process.cwd()) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   runBuild()
     .then((result) => {
+      if (result.command === "config-schema") return;
       console.log(`Standalone report generated: ${result.outputFile}`);
     })
     .catch((error) => {

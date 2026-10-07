@@ -268,6 +268,37 @@ export function buildPayload(options) {
   };
 }
 
+/** Latest shipped config schema version (omit `--schema-version` → this). */
+export const LATEST_CONFIG_SCHEMA_VERSION = 1;
+
+const CONFIG_SCHEMA_FILES = {
+  1: "config.v1.json",
+};
+
+/**
+ * Loads a config JSON Schema document for the given version.
+ * @param {string|number|null|undefined} schemaVersion
+ * @param {string} packageRoot Absolute path to the package root (directory of build.js).
+ * @returns {object}
+ */
+export function loadConfigSchema(schemaVersion, packageRoot) {
+  const version =
+    schemaVersion === undefined || schemaVersion === null || schemaVersion === ""
+      ? LATEST_CONFIG_SCHEMA_VERSION
+      : Number(schemaVersion);
+  if (!Number.isInteger(version) || !CONFIG_SCHEMA_FILES[version]) {
+    const supported = Object.keys(CONFIG_SCHEMA_FILES).join(", ");
+    throw new Error(
+      `Unknown config schema version "${schemaVersion}". Supported: ${supported}.`,
+    );
+  }
+  const schemaPath = path.join(packageRoot, "schemas", CONFIG_SCHEMA_FILES[version]);
+  if (!fs.existsSync(schemaPath)) {
+    throw new Error(`Config schema file not found: ${schemaPath}`);
+  }
+  return JSON.parse(fs.readFileSync(schemaPath, "utf-8"));
+}
+
 export function resolveBuildOptions(argv, cwd) {
   const args = argv.slice(2);
   const command = args[0] && !args[0].startsWith("--") ? args[0] : "inline";
@@ -283,6 +314,15 @@ export function resolveBuildOptions(argv, cwd) {
     } else {
       flags.set(key, "true");
     }
+  }
+
+  if (command === "config-schema") {
+    return {
+      command,
+      schemaVersion: flags.has("schema-version")
+        ? flags.get("schema-version")
+        : null,
+    };
   }
 
   const inputDir = path.resolve(cwd, flags.get("inputDir") || "input");

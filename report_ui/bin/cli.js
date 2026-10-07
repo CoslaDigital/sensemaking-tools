@@ -3,6 +3,7 @@ import { runBuild } from "../build.js";
 
 runBuild(process.argv, process.cwd())
   .then((result) => {
+    if (result.command === "config-schema") return;
     console.log(`Standalone report generated: ${result.outputFile}`);
   })
   .catch((error) => {

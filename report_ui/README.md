@@ -23,6 +23,9 @@ npm run build -- inline --inputDir ./fixtures/happy-path --outputDir ./output
 
 ## Supported options
 
+- `inline` (default) — build a standalone HTML report
+- `config-schema` — print the config JSON Schema to stdout (no input files required)
+- `--schema-version`: with `config-schema`, select schema version (default: latest, currently `1`)
 - `--topics`: path to `topic-stats.json` (default: `<inputDir>/topic-stats.json`)
 - `--summary`: path to `summary.json` (default: `<inputDir>/summary.json`)
 - `--comments`: path to `comments.json` (default: `<inputDir>/comments.json`)
@@ -32,6 +35,15 @@ npm run build -- inline --inputDir ./fixtures/happy-path --outputDir ./output
 - `--inputDir`: base input directory (default: `./input`)
 - `--outputDir`: output directory (default: `./output`)
 - `--outputFile`: filename or path for final html (default: `report.html`)
+
+### Config schema
+
+```bash
+npx sensemaking-report-ui config-schema
+npx sensemaking-report-ui config-schema --schema-version 1
+```
+
+Prints a [JSON Schema draft 2020-12](https://json-schema.org/draft/2020-12/schema) document describing supported `config.json` keys (`schemas/config.v1.json`). Includes application field `config_schema_version`. Unknown `--schema-version` values fail with a clear error.
 
 ## Config JSON (optional)
 
