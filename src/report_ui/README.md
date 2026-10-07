@@ -55,7 +55,9 @@ Defaults: opinions `<inputDir>/opinions.csv`, summary `<inputDir>/summary.json`,
 
 | Arg / flag | Purpose | Default |
 |------------|---------|---------|
-| `inline` \| `static` | Build mode (**required**) | — |
+| `inline` \| `static` | Build mode (**required** for builds) | — |
+| `config-schema` | Print config JSON Schema to stdout (no inputs) | — |
+| `--schema-version` | With `config-schema`: schema version to print | latest (`1`) |
 | `--inputDir` | Base dir for default input paths | `./input` |
 | `--opinions` / `--bridging_scores` | Opinions / bridging scores CSV | `<inputDir>/opinions.csv` |
 | `--summary` | Summary JSON (`report_data.json`) | `<inputDir>/summary.json` |
@@ -63,6 +65,19 @@ Defaults: opinions `<inputDir>/opinions.csv`, summary `<inputDir>/summary.json`,
 | `--config` | Config JSON (logo, exclusions, …) | `<inputDir>/config.json` if present; else `{}` |
 | `--output` | **inline only:** path to HTML file | `./output/report.html` |
 | `--outputDir` | **static only:** output directory | `./output` |
+
+### Config schema
+
+```bash
+npx @cosla/sensemaking-report-builder config-schema
+npx @cosla/sensemaking-report-builder config-schema --schema-version 1
+```
+
+Prints a [JSON Schema draft 2020-12](https://json-schema.org/draft/2020-12/schema) document for supported `config.json` keys (`schemas/config.v1.json`), including application field `config_schema_version`. Unknown `--schema-version` values fail with a clear error.
+
+```bash
+npm run smoke   # validates config-schema output
+```
 
 Logo and translations are configured in `config.json` (not CLI flags). Place `logo.svg` / `logo.png` next to that config (under `--inputDir` when using dir mode).
 

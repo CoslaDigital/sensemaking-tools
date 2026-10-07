@@ -24,17 +24,49 @@ const demographics_prefix = "demo:";
 
 /**
  * @typedef {Object} BuildOptions
- * @property {"inline"|"static"} command
- * @property {string} inputDir
- * @property {string|null} output
- * @property {string|null} outputDir
- * @property {string} opinionsPath
- * @property {string} summaryPath
- * @property {string|null} predictedPath
- * @property {string|null} configPath
- * @property {boolean} predictedExplicit
- * @property {boolean} configExplicit
+ * @property {"inline"|"static"|"config-schema"} command
+ * @property {string|null} [schemaVersion]
+ * @property {string} [inputDir]
+ * @property {string|null} [output]
+ * @property {string|null} [outputDir]
+ * @property {string} [opinionsPath]
+ * @property {string} [summaryPath]
+ * @property {string|null} [predictedPath]
+ * @property {string|null} [configPath]
+ * @property {boolean} [predictedExplicit]
+ * @property {boolean} [configExplicit]
  */
+
+/** Latest shipped config schema version (omit `--schema-version` → this). */
+export const LATEST_CONFIG_SCHEMA_VERSION = 1;
+
+const CONFIG_SCHEMA_FILES = {
+  1: "config.v1.json",
+};
+
+/**
+ * Loads a config JSON Schema document for the given version.
+ * @param {string|number|null|undefined} schemaVersion
+ * @param {string} packageRoot Absolute path to the package root (directory of build.js).
+ * @returns {object}
+ */
+export function loadConfigSchema(schemaVersion, packageRoot) {
+  const version =
+    schemaVersion === undefined || schemaVersion === null || schemaVersion === ""
+      ? LATEST_CONFIG_SCHEMA_VERSION
+      : Number(schemaVersion);
+  if (!Number.isInteger(version) || !CONFIG_SCHEMA_FILES[version]) {
+    const supported = Object.keys(CONFIG_SCHEMA_FILES).join(", ");
+    throw new Error(
+      `Unknown config schema version "${schemaVersion}". Supported: ${supported}.`,
+    );
+  }
+  const schemaPath = path.join(packageRoot, "schemas", CONFIG_SCHEMA_FILES[version]);
+  if (!fs.existsSync(schemaPath)) {
+    throw new Error(`Config schema file not found: ${schemaPath}`);
+  }
+  return JSON.parse(fs.readFileSync(schemaPath, "utf-8"));
+}
 
 /**
  * Parses argv flags into a Map of key -> value.
@@ -69,16 +101,26 @@ export function resolveBuildOptions(argv = process.argv, cwd = process.cwd()) {
   const commandToken = args[0] && !args[0].startsWith("--") ? args[0] : null;
   if (!commandToken) {
     throw new Error(
-      'Build mode is required. Use "inline" or "static" as the first argument.',
-    );
-  }
-  if (commandToken !== "inline" && commandToken !== "static") {
-    throw new Error(
-      `Unsupported command "${commandToken}". Use "inline" or "static".`,
+      'Command is required. Use "inline", "static", or "config-schema" as the first argument.',
     );
   }
 
   const flags = parseFlags(args);
+
+  if (commandToken === "config-schema") {
+    return {
+      command: commandToken,
+      schemaVersion: flags.has("schema-version")
+        ? flags.get("schema-version")
+        : null,
+    };
+  }
+
+  if (commandToken !== "inline" && commandToken !== "static") {
+    throw new Error(
+      `Unsupported command "${commandToken}". Use "inline", "static", or "config-schema".`,
+    );
+  }
   const hasOutput = flags.has("output");
   const hasOutputDir = flags.has("outputDir");
 

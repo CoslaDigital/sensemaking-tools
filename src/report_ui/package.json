@@ -1,6 +1,6 @@
 {
   "name": "@cosla/sensemaking-report-builder",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Interactive HTML report builder for Cosla Python sensemaking pipeline outputs.",
   "type": "module",
   "main": "build.js",
@@ -12,7 +12,9 @@
     "build.js",
     "data.js",
     "src/**/*",
-    "README.md"
+    "schemas/**/*",
+    "README.md",
+    "smoke.js"
   ],
   "scripts": {
     "predev": "node bin/cli.js static --outputDir ./output",
@@ -21,7 +23,9 @@
     "inline": "node bin/cli.js inline",
     "build": "node bin/cli.js inline",
     "preview": "node build.js preview",
-    "github": "node build.js github"
+    "github": "node build.js github",
+    "smoke": "node smoke.js",
+    "test": "npm run smoke"
   },
   "repository": {
     "type": "git",

@@ -10,7 +10,11 @@ import { execSync } from "node:child_process";
 import csv from "csvtojson";
 import mustache from "mustache";
 import { inlineSource } from "inline-source";
-import { processReportData, resolveBuildOptions } from "./data.js";
+import {
+  loadConfigSchema,
+  processReportData,
+  resolveBuildOptions,
+} from "./data.js";
 
 const WORK_DIR_NAME = ".py-report-ui-work";
 
@@ -173,6 +177,13 @@ function inlineFontDataUris(html, fontsDir) {
 export async function runBuild(argv = process.argv, cwd = process.cwd()) {
   const options = resolveBuildOptions(argv, cwd);
   const packageRoot = path.dirname(fileURLToPath(import.meta.url));
+
+  if (options.command === "config-schema") {
+    const schema = loadConfigSchema(options.schemaVersion, packageRoot);
+    process.stdout.write(`${JSON.stringify(schema, null, 2)}\n`);
+    return { command: "config-schema" };
+  }
+
   const artefactRoot =
     options.command === "inline"
       ? path.dirname(options.output)
@@ -296,6 +307,7 @@ if (isMain) {
   } else {
     runBuild(process.argv, process.cwd())
       .then((result) => {
+        if (result.command === "config-schema") return;
         console.log(
           `Standalone report generated: ${result.output || result.outputDir}`,
         );
